@@ -1,0 +1,6 @@
+@Askify.WebAPI_HostAddress = http://localhost:5136
+
+GET {{Askify.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
