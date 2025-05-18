@@ -1,7 +1,9 @@
 using System.Text;
 using Askify.BusinessLogicLayer.Configurations;
 using Askify.DataAccessLayer;
+using Askify.DataAccessLayer.Data;
 using Askify.DataAccessLayer.Entities;
+using Askify.DataAccessLayer.Interfaces;
 using Askify.DataAccessLayer.Seeding;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -77,6 +79,8 @@ builder.Services.AddScoped<CommentLikeSeeder>();
 builder.Services.AddScoped<PostLikeSeeder>();
 builder.Services.AddScoped<SavedPostSeeder>();
 builder.Services.AddScoped<DataSeeder>();
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 var app = builder.Build();
 
