@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Askify.DataAccessLayer", "Askify.DataAccessLayer\Askify.DataAccessLayer.csproj", "{5DACEB74-F5D8-4652-96EC-69FB97F79C71}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Askify.WebAPI", "Askify.WebAPI\Askify.WebAPI.csproj", "{3340BDD2-46DD-4A59-BFE2-020956208FBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Askify.BusinessLogicLayer", "Askify.BusinessLogicLayer\Askify.BusinessLogicLayer.csproj", "{AE31157F-6D96-4FE1-A102-BBCCC68E7E26}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{3340BDD2-46DD-4A59-BFE2-020956208FBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3340BDD2-46DD-4A59-BFE2-020956208FBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3340BDD2-46DD-4A59-BFE2-020956208FBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE31157F-6D96-4FE1-A102-BBCCC68E7E26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE31157F-6D96-4FE1-A102-BBCCC68E7E26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE31157F-6D96-4FE1-A102-BBCCC68E7E26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE31157F-6D96-4FE1-A102-BBCCC68E7E26}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
