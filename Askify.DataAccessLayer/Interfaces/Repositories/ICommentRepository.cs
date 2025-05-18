@@ -4,6 +4,6 @@ namespace Askify.DataAccessLayer.Interfaces.Repositories
 {
     public interface ICommentRepository : IGenericRepository<Comment>
     {
-        Task<IEnumerable<Comment>> GetByPostIdAsync(Guid postId);
+        Task<IEnumerable<Comment>> GetByPostIdAsync(int postId);
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Askify.DataAccessLayer.Entities;
-using Bogus;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Askify.DataAccessLayer.Seeding
@@ -7,62 +7,54 @@ namespace Askify.DataAccessLayer.Seeding
     public class PostSeeder
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<User> _userManager;
 
-        public PostSeeder(AppDbContext context)
+        public PostSeeder(AppDbContext context, UserManager<User> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public async Task SeedAsync()
         {
-            if (await _context.Posts.AnyAsync()) return;
-
-            var users = await _context.Users.ToListAsync();
-            var consultations = await _context.Consultations.ToListAsync();
-            var tags = await _context.Tags.ToListAsync();
-
-            var faker = new Faker("uk");
-
-            var posts = new List<Post>();
-
-            for (int i = 0; i < 6; i++)
+            // Skip if already seeded
+            if (await _context.Posts.AnyAsync())
             {
-                var author = faker.PickRandom(users);
-                var relatedConsultation = faker.PickRandom(consultations);
+                return;
+            }
+
+            await SeedPostsAsync();
+        }
+
+        private async Task SeedPostsAsync()
+        {
+            // Check if users exist before creating posts
+            var users = await _userManager.Users.ToListAsync();
+            if (!users.Any())
+            {
+                return; // Skip seeding if no users exist
+            }
+
+            var random = new Random();
+
+            for (int i = 0; i < 20; i++)
+            {
+                // Make sure lists aren't empty before using Random
+                if (users.Count == 0) break;
+
+                var user = users[random.Next(users.Count)];
 
                 var post = new Post
                 {
-                    AuthorId = author.Id,
-                    Title = faker.Lorem.Sentence(),
-                    Content = faker.Lorem.Paragraphs(2),
-                    CreatedAt = DateTime.UtcNow.AddDays(-i),
-                    RelatedConsultationId = relatedConsultation.Id,
-                    CoverImageUrl = faker.Image.PicsumUrl()
+                    Title = $"Sample Post {i + 1}",
+                    Content = $"This is the content of sample post {i + 1}.",
+                    AuthorId = user.Id,
+                    CreatedAt = DateTime.UtcNow.AddDays(-random.Next(1, 30))
                 };
 
-                posts.Add(post);
+                await _context.Posts.AddAsync(post);
             }
 
-            await _context.Posts.AddRangeAsync(posts);
-            await _context.SaveChangesAsync();
-
-            // Add tags to posts
-            var postTags = new List<PostTag>();
-
-            foreach (var post in posts)
-            {
-                var selectedTags = faker.PickRandom(tags, 2).ToList();
-                foreach (var tag in selectedTags)
-                {
-                    postTags.Add(new PostTag
-                    {
-                        PostId = post.Id,
-                        TagId = tag.Id
-                    });
-                }
-            }
-
-            await _context.PostTags.AddRangeAsync(postTags);
             await _context.SaveChangesAsync();
         }
     }

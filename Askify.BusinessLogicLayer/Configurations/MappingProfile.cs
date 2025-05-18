@@ -10,27 +10,38 @@ namespace Askify.BusinessLogicLayer.Configurations
         {
             // User
             CreateMap<User, UserDto>();
+            CreateMap<UpdateUserDto, User>();
 
             // Post
             CreateMap<Post, PostDto>()
                 .ForMember(dest => dest.Tags, opt => opt.MapFrom(src => src.PostTags.Select(pt => pt.Tag.Name)))
                 .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.FullName));
-
             CreateMap<CreatePostDto, Post>();
+            CreateMap<UpdatePostDto, Post>();
 
             // Comment
             CreateMap<Comment, CommentDto>()
                 .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.FullName));
+            CreateMap<CreateCommentDto, Comment>();
+            CreateMap<UpdateCommentDto, Comment>();
 
             // Consultation
             CreateMap<Consultation, ConsultationDto>();
             CreateMap<CreateConsultationDto, Consultation>();
+            CreateMap<UpdateConsultationDto, Consultation>();
 
             // Message
             CreateMap<Message, MessageDto>();
+            CreateMap<CreateMessageDto, Message>();
 
             // Feedback
             CreateMap<Feedback, FeedbackDto>();
+            CreateMap<CreateFeedbackDto, Feedback>();
+
+            // Report
+            CreateMap<Report, ReportDto>();
+            CreateMap<CreateReportDto, Report>();
+            CreateMap<UpdateReportDto, Report>();
 
             // Notification
             CreateMap<Notification, NotificationDto>();
@@ -53,9 +64,6 @@ namespace Askify.BusinessLogicLayer.Configurations
 
             // Payment
             CreateMap<Payment, PaymentDto>();
-
-            // Report
-            CreateMap<Report, ReportDto>();
         }
     }
 }

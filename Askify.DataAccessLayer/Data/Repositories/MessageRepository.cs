@@ -5,14 +5,11 @@ namespace Askify.DataAccessLayer.Data.Repositories
 {
     public class MessageRepository : GenericRepository<Message>, IMessageRepository
     {
-        private readonly AppDbContext _context;
-
         public MessageRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
-        public async Task<IEnumerable<Message>> GetMessagesForConsultationAsync(Guid consultationId)
+        public async Task<IEnumerable<Message>> GetMessagesForConsultationAsync(int consultationId)
         {
             return await Task.FromResult(new List<Message>());
         }
@@ -22,5 +19,4 @@ namespace Askify.DataAccessLayer.Data.Repositories
             return await Task.FromResult(new List<Message>());
         }
     }
-
 }

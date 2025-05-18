@@ -1,30 +1,48 @@
 ﻿using Askify.DataAccessLayer.Entities;
 using Askify.DataAccessLayer.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Askify.DataAccessLayer.Data.Repositories
 {
     public class PostRepository : GenericRepository<Post>, IPostRepository
     {
-        private readonly AppDbContext _context;
-
         public PostRepository(AppDbContext context) : base(context)
         {
-            _context = context;
         }
 
         public async Task<IEnumerable<Post>> GetPostsWithAuthorAsync()
         {
-            return await Task.FromResult(new List<Post>());
+            // Fix: Use Include to load the Author relationship and order by newest first
+            return await _dbSet
+                .Include(p => p.Author)
+                .Include(p => p.PostTags)
+                    .ThenInclude(pt => pt.Tag)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
         }
 
-        public async Task<Post?> GetPostWithCommentsAsync(Guid postId)
+        public async Task<Post?> GetPostWithCommentsAsync(int postId)
         {
-            return await Task.FromResult<Post?>(null);
+            // Fix: Include all needed related entities
+            return await _dbSet
+                .Include(p => p.Author)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Author)
+                .Include(p => p.PostTags)
+                    .ThenInclude(pt => pt.Tag)
+                .FirstOrDefaultAsync(p => p.Id == postId);
         }
 
         public async Task<IEnumerable<Post>> GetByUserIdAsync(string userId)
         {
-            return await Task.FromResult(new List<Post>());
+            // Include necessary related entities
+            return await _dbSet
+                .Include(p => p.Author)
+                .Include(p => p.PostTags)
+                    .ThenInclude(pt => pt.Tag)
+                .Where(p => p.AuthorId == userId)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
         }
     }
 
