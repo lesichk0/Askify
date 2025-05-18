@@ -1,4 +1,5 @@
 using System.Text;
+using Askify.BusinessLogicLayer.Configurations;
 using Askify.DataAccessLayer;
 using Askify.DataAccessLayer.Entities;
 using Askify.DataAccessLayer.Seeding;
@@ -27,6 +28,8 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
+
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 // JWT Configuration
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
