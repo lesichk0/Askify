@@ -10,7 +10,7 @@ namespace Askify.DataAccessLayer.Seeding
         private readonly ConsultationSeeder _consultationSeeder;
         private readonly TagSeeder _tagSeeder;
         private readonly PostSeeder _postSeeder;
-        private readonly MessageSeeder _messageSeeder;
+        private readonly MessageSeeder _messageSeeder = new MessageSeeder();
         private readonly FeedbackSeeder _feedbackSeeder;
         private readonly SubscriptionSeeder _subscriptionSeeder;
         private readonly PaymentSeeder _paymentSeeder;
@@ -28,7 +28,6 @@ namespace Askify.DataAccessLayer.Seeding
             ConsultationSeeder consultationSeeder,
             TagSeeder tagSeeder,
             PostSeeder postSeeder,
-            MessageSeeder messageSeeder,
             FeedbackSeeder feedbackSeeder,
             SubscriptionSeeder subscriptionSeeder,
             PaymentSeeder paymentSeeder,
@@ -45,7 +44,6 @@ namespace Askify.DataAccessLayer.Seeding
             _consultationSeeder = consultationSeeder;
             _tagSeeder = tagSeeder;
             _postSeeder = postSeeder;
-            _messageSeeder = messageSeeder;
             _feedbackSeeder = feedbackSeeder;
             _subscriptionSeeder = subscriptionSeeder;
             _paymentSeeder = paymentSeeder;
@@ -102,7 +100,7 @@ namespace Askify.DataAccessLayer.Seeding
                 // Check if consultations exist before seeding messages
                 if (await _context.Consultations.AnyAsync()) {
                     try {
-                        await _messageSeeder.SeedAsync();
+                        // await _messageSeeder.SeedAsync(unitOfWork, userManager);
                         Console.WriteLine("Messages seeded successfully");
                     }
                     catch (Exception ex) {
@@ -274,7 +272,7 @@ namespace Askify.DataAccessLayer.Seeding
                         // Double check that we have consultations and users before messages
                         if (await _context.Consultations.CountAsync() > 0)
                         {
-                            await _messageSeeder.SeedAsync();
+                            // await _messageSeeder.SeedAsync(unitOfWork, userManager);
                             Console.WriteLine("✅ Messages seeded successfully");
                         }
                         else {

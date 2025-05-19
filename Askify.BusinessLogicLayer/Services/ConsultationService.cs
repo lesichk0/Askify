@@ -48,7 +48,11 @@ namespace Askify.BusinessLogicLayer.Services
             consultation.IsFree = !await HasUsedFreeConsultationAsync(userId);
             consultation.Status = "Pending";
             consultation.CreatedAt = DateTime.UtcNow;
-
+            
+            // Set ExpertId to null when creating a new consultation
+            // It will be set when an expert accepts the consultation
+            consultation.ExpertId = null;
+            
             await _unitOfWork.Consultations.AddAsync(consultation);
             await _unitOfWork.CompleteAsync();
 

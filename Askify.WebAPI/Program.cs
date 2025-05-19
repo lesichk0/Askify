@@ -13,19 +13,36 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Askify.BusinessLogicLayer.Validators;
+using Askify.WebAPI.Filters;
+using Askify.WebAPI.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidationExceptionFilter>();
+})
+.ConfigureApiBehaviorOptions(options =>
+{
+    // This maintains the default behavior
+    options.SuppressModelStateInvalidFilter = false;
+});
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure Swagger with OAuth2 support
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Askify API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { 
+        Title = "Askify API", 
+        Version = "v1",
+        Description = "API for Askify - Q&A and Expert Consultation Platform"
+    });
     
-    // Add JWT Authentication
+    // Include JWT Authentication in Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -34,7 +51,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
+    
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -46,7 +63,7 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            Array.Empty<string>()
+            new string[] {}
         }
     });
 });
@@ -148,68 +165,46 @@ builder.Services.AddScoped<PostLikeSeeder>();
 builder.Services.AddScoped<SavedPostSeeder>();
 builder.Services.AddScoped<DataSeeder>();
 
+// Add FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateUserDtoValidator>();
+
+// Add or update CORS configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", builder =>
+    {
+        builder.WithOrigins("http://localhost:3000", "http://localhost:8080")
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
-// Seed data for empty tables
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    
-    try
-    {
-        // Check if database exists, if not, create it - but don't run migrations if DB exists
-        Console.WriteLine("Ensuring database is created...");
-        context.Database.EnsureCreated(); // This creates the DB if it doesn't exist but won't apply migrations
-        
-        // Check if key tables are empty - excluding identity tables
-        bool postsEmpty = !context.Posts.Any();
-        bool consultationsEmpty = !context.Consultations.Any();
-        bool tagsEmpty = !context.Tags.Any();
-        bool messagesEmpty = !context.Messages.Any();
-        bool commentsEmpty = !context.Comments.Any();
-        bool feedbacksEmpty = !context.Feedbacks.Any();
-        
-        Console.WriteLine("DATABASE TABLES STATUS:");
-        Console.WriteLine($"- Posts: {(postsEmpty ? "EMPTY" : "Has data")}");
-        Console.WriteLine($"- Consultations: {(consultationsEmpty ? "EMPTY" : "Has data")}");
-        Console.WriteLine($"- Tags: {(tagsEmpty ? "EMPTY" : "Has data")}");
-        Console.WriteLine($"- Messages: {(messagesEmpty ? "EMPTY" : "Has data")}");
-        Console.WriteLine($"- Comments: {(commentsEmpty ? "EMPTY" : "Has data")}");
-        Console.WriteLine($"- Feedbacks: {(feedbacksEmpty ? "EMPTY" : "Has data")}");
-        
-        // Force seeding if any content tables are empty, regardless of identity tables
-        if (postsEmpty || consultationsEmpty || tagsEmpty || messagesEmpty || commentsEmpty || feedbacksEmpty)
-        {
-            Console.WriteLine("SEEDING REQUIRED: One or more content tables are empty.");
-            Console.WriteLine("Starting data seeding process...");
-            
-            var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
-            await seeder.ForceSeedMissingDataAsync();
-        }
-        else
-        {
-            Console.WriteLine("SEEDING SKIPPED: All content tables have data.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"An error occurred during database initialization: {ex.Message}");
-        Console.WriteLine(ex.InnerException?.Message ?? "No inner exception");
-    }
-}
-
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// Add the error handling middleware
+app.UseMiddleware<ErrorHandlingMiddleware>();
+
+// Use CORS before routing
+app.UseCors("AllowFrontend");
+
 app.UseHttpsRedirection();
 
+// Authentication before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Map controllers
 app.MapControllers();
 
+// Run the app
 app.Run();
