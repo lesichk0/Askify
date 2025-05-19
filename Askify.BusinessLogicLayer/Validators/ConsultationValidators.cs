@@ -7,21 +7,18 @@ namespace Askify.BusinessLogicLayer.Validators
     {
         public CreateConsultationDtoValidator()
         {
+            // Remove duplicate validation rules
+            RuleFor(x => x.Title)
+                .NotEmpty().WithMessage("Title is required")
+                .MaximumLength(200).WithMessage("Title cannot exceed 200 characters");
+
+            RuleFor(x => x.Description)
+                .NotEmpty().WithMessage("Description is required");
+
             RuleFor(x => x.ExpertId)
                 .Null().WithMessage("ExpertId should be null for new consultations.");
 
-            // Only validate the properties that actually exist on your DTO
-            // Comment out or remove the rules for Title and Description
-
-            // For example, if you have ExpertId:
-            RuleFor(x => x.ExpertId)
-                .Null().WithMessage("ExpertId should be null for new consultations.");
-
-            // If you have other properties, add rules for them
-            // For example:
-            // RuleFor(x => x.Message)
-            //     .NotEmpty().WithMessage("Message is required.")
-            //     .MaximumLength(1000).WithMessage("Message cannot exceed 1,000 characters.");
+            // Add other validation rules as needed
         }
     }
 

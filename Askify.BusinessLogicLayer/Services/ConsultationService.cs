@@ -29,15 +29,34 @@ namespace Askify.BusinessLogicLayer.Services
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
         }
 
+        public async Task<IEnumerable<ConsultationDto>> GetConsultationsForUserAsync(string userId, bool includeAllRoles = true)
+        {
+            IEnumerable<Consultation> consultations;
+            
+            if (includeAllRoles)
+            {
+                // Get consultations where the user is either the owner or the expert
+                consultations = await _unitOfWork.Consultations.FindAsync(c => 
+                    c.UserId == userId || c.ExpertId == userId);
+            }
+            else
+            {
+                // Get consultations where the user is only the owner
+                consultations = await _unitOfWork.Consultations.FindAsync(c => c.UserId == userId);
+            }
+            
+            return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
+        }
+
+        // Implement methods required by interface
         public async Task<IEnumerable<ConsultationDto>> GetByUserIdAsync(string userId)
         {
-            var consultations = await _unitOfWork.Consultations.GetByUserIdAsync(userId);
-            return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
+            return await GetConsultationsForUserAsync(userId, includeAllRoles: false);
         }
 
         public async Task<IEnumerable<ConsultationDto>> GetByExpertIdAsync(string expertId)
         {
-            var consultations = await _unitOfWork.Consultations.GetByExpertIdAsync(expertId);
+            var consultations = await _unitOfWork.Consultations.FindAsync(c => c.ExpertId == expertId);
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
         }
 

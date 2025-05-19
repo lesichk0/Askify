@@ -21,49 +21,63 @@ namespace Askify.BusinessLogicLayer.Services
             _configuration = configuration;
         }
 
+        // Update the Login method to handle JWT errors more gracefully
         public async Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
         {
-            var user = await _userManager.FindByEmailAsync(loginDto.Email);
-            if (user == null)
-            {
+            try {
+                var user = await _userManager.FindByEmailAsync(loginDto.Email);
+                if (user == null)
+                {
+                    return new AuthResponseDto
+                    {
+                        IsSuccess = false,
+                        Message = "Invalid email or password"
+                    };
+                }
+
+                var result = await _userManager.CheckPasswordAsync(user, loginDto.Password);
+                if (!result)
+                {
+                    return new AuthResponseDto
+                    {
+                        IsSuccess = false,
+                        Message = "Invalid email or password"
+                    };
+                }
+
+                if (user.IsBlocked)
+                {
+                    return new AuthResponseDto
+                    {
+                        IsSuccess = false,
+                        Message = $"Your account is blocked. Reason: {user.BlockReason}"
+                    };
+                }
+
+                var userRoles = await _userManager.GetRolesAsync(user);
+
+                // Make sure we check for null JWT key before attempting to generate token
+                if (string.IsNullOrEmpty(_configuration["Jwt:Key"]))
+                {
+                    throw new InvalidOperationException("Authentication service is misconfigured. Please contact support.");
+                }
+
+                var token = GenerateJwtToken(user.Id, userRoles);
+
                 return new AuthResponseDto
                 {
-                    IsSuccess = false,
-                    Message = "Invalid email or password"
+                    IsSuccess = true,
+                    Token = token,
+                    UserId = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    Roles = userRoles
                 };
             }
-
-            var result = await _userManager.CheckPasswordAsync(user, loginDto.Password);
-            if (!result)
-            {
-                return new AuthResponseDto
-                {
-                    IsSuccess = false,
-                    Message = "Invalid email or password"
-                };
+            catch (Exception) {
+                // Consider logging the exception here
+                throw;
             }
-
-            if (user.IsBlocked)
-            {
-                return new AuthResponseDto
-                {
-                    IsSuccess = false,
-                    Message = $"Your account is blocked. Reason: {user.BlockReason}"
-                };
-            }
-
-            var userRoles = await _userManager.GetRolesAsync(user);
-            var token = await GenerateJwtTokenAsync(user.Id, userRoles);
-
-            return new AuthResponseDto
-            {
-                IsSuccess = true,
-                Token = token,
-                UserId = user.Id,
-                FullName = user.FullName,
-                Email = user.Email,
-                Roles = userRoles
-            };
         }
 
         public async Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto)
@@ -103,7 +117,7 @@ namespace Askify.BusinessLogicLayer.Services
             
             // Generate token for the new user
             var userRoles = await _userManager.GetRolesAsync(user);
-            var token = await GenerateJwtTokenAsync(user.Id, userRoles);
+            var token = GenerateJwtToken(user.Id, userRoles);
 
             return new AuthResponseDto
             {
@@ -116,40 +130,76 @@ namespace Askify.BusinessLogicLayer.Services
             };
         }
 
-        public async Task<string> GenerateJwtTokenAsync(string userId, IList<string> roles)
+        // Replace the async method without awaits with a synchronous version
+        public string GenerateJwtToken(string userId, IList<string> roles)
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return string.Empty;
-
+            // Get the key from configuration and verify it exists
+            var jwtKey = _configuration["Jwt:Key"] ?? 
+                throw new InvalidOperationException("JWT Key is not configured");
+            
+            // Create signing credentials with null check
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            
+            // Create claims list
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, userId),
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(JwtRegisteredClaimNames.Email, user.Email!),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("fullName", user.FullName)
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
-
-            // Add roles as claims
+            
+            // Add roles to claims
             foreach (var role in roles)
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             
-            // Set token expiration to 24 hours
-            var expires = DateTime.Now.AddHours(24);
-
+            // Create and return the token
             var token = new JwtSecurityToken(
-                issuer: _configuration["JwtSettings:Issuer"],
-                audience: _configuration["JwtSettings:Audience"],
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: expires,
+                expires: DateTime.UtcNow.AddDays(30), // 30-day expiration
                 signingCredentials: creds
             );
+            
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
 
+        // Fix missing GenerateJwtTokenAsync implementation
+        public async Task<string> GenerateJwtTokenAsync(string userId, IList<string> roles)
+        {
+            // Add actual implementation with at least one await
+            var jwtKey = _configuration["Jwt:Key"] ?? 
+                throw new InvalidOperationException("JWT Key is not configured");
+            
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId),
+                new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+            
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+            
+            // Add at least one await operation
+            await Task.Yield();
+            
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(30),
+                signingCredentials: creds
+            );
+            
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }

@@ -1,22 +1,74 @@
-import { useAppDispatch, useAppSelector } from './hooks.ts'
-import { login, logout } from './features/auth/authSlice'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAppDispatch } from './hooks.ts';
+import { checkAuthStatus } from './features/auth/authSlice';
+import MainLayout from './layouts/MainLayout';
+import HomePage from './pages/HomePage';
+import ProtectedRoute from './components/ProtectedRoute';
+import ConsultationsPage from './pages/ConsultationsPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ConsultationDetailPage from './pages/ConsultationDetailPage';
 
 function App() {
-  const dispatch = useAppDispatch()
-  const { isAuthenticated, username } = useAppSelector(state => state.auth)
+  const dispatch = useAppDispatch();
+
+  // Check authentication status when app loads
+  useEffect(() => {
+    dispatch(checkAuthStatus());
+  }, [dispatch]);
 
   return (
-    <div className="text-center p-10">
-      <h1 className="text-3xl font-bold mb-4">
-        {isAuthenticated ? `Welcome, ${username}!` : 'Not logged in'}
-      </h1>
-      <button
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-        onClick={() => dispatch(isAuthenticated ? logout() : login('Olesia'))}
-      >
-        {isAuthenticated ? 'Logout' : 'Login'}
-      </button>
-    </div>
-  )
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={
+          <MainLayout>
+            <HomePage />
+          </MainLayout>
+        } />
+        <Route path="/login" element={
+          <MainLayout>
+            <LoginPage />
+          </MainLayout>
+        } />
+        <Route path="/register" element={
+          <MainLayout>
+            <RegisterPage />
+          </MainLayout>
+        } />
+        <Route path="/consultations" element={
+          <MainLayout>
+            <ConsultationsPage />
+          </MainLayout>
+        } />
+        <Route path="/consultations/:id" element={
+          <MainLayout>
+            <ConsultationDetailPage />
+          </MainLayout>
+        } />
+
+        {/* Protected routes - add these as you build the pages */}
+        <Route path="/my-consultations" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ConsultationsPage />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Fallback route */}
+        <Route path="*" element={
+          <MainLayout>
+            <div className="text-center py-10">
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">Page Not Found</h1>
+              <p className="text-gray-600">The page you're looking for doesn't exist.</p>
+            </div>
+          </MainLayout>
+        } />
+      </Routes>
+    </Router>
+  );
 }
-export default App
+
+export default App;

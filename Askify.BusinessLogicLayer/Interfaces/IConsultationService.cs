@@ -6,8 +6,7 @@ namespace Askify.BusinessLogicLayer.Interfaces
     {
         Task<ConsultationDto?> GetByIdAsync(int id);
         Task<IEnumerable<ConsultationDto>> GetAllAsync();
-        Task<IEnumerable<ConsultationDto>> GetByUserIdAsync(string userId);
-        Task<IEnumerable<ConsultationDto>> GetByExpertIdAsync(string expertId);
+        Task<IEnumerable<ConsultationDto>> GetConsultationsForUserAsync(string userId, bool includeAllRoles = true);
         Task<int> CreateConsultationAsync(string userId, CreateConsultationDto consultationDto);
         Task<bool> UpdateConsultationAsync(int id, UpdateConsultationDto consultationDto);
         Task<bool> DeleteConsultationAsync(int id);

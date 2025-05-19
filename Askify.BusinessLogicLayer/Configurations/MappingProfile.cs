@@ -26,8 +26,12 @@ namespace Askify.BusinessLogicLayer.Configurations
             CreateMap<UpdateCommentDto, Comment>();
 
             // Consultation
-            CreateMap<Consultation, ConsultationDto>();
-            CreateMap<CreateConsultationDto, Consultation>();
+            CreateMap<Askify.DataAccessLayer.Entities.Consultation, ConsultationDto>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
+            CreateMap<CreateConsultationDto, Consultation>()
+                .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
             CreateMap<UpdateConsultationDto, Consultation>();
 
             // Message

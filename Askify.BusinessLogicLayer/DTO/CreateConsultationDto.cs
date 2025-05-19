@@ -5,6 +5,8 @@
         public string? ExpertId { get; set; }
         public bool IsOpenRequest { get; set; }
         public bool IsPublicable { get; set; }
+        public string Title { get; set; } = null!;
+        public string Description { get; set; } = null!;
     }
 
 }

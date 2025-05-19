@@ -1,6 +1,6 @@
-﻿namespace Askify.BusinessLogicLayer.DTO
+namespace Askify.WebAPI.Models
 {
-    public class ConsultationDto
+    public class ConsultationViewModel
     {
         public int Id { get; set; }
         public string UserId { get; set; } = null!;

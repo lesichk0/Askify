@@ -1,4 +1,5 @@
 ﻿using Askify.DataAccessLayer.Interfaces.Repositories;
+using System.Data.Common;
 
 namespace Askify.DataAccessLayer.Interfaces
 {
@@ -21,5 +22,6 @@ namespace Askify.DataAccessLayer.Interfaces
         IPostTagRepository PostTags { get; }
 
         Task<bool> CompleteAsync();
+        DbConnection GetConnection();
     }
 }

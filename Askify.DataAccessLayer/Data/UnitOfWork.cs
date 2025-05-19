@@ -1,6 +1,8 @@
 ﻿using Askify.DataAccessLayer.Data.Repositories;
 using Askify.DataAccessLayer.Interfaces.Repositories;
 using Askify.DataAccessLayer.Interfaces;
+using System.Data.Common;
+using Microsoft.EntityFrameworkCore;
 
 namespace Askify.DataAccessLayer.Data
 {
@@ -46,6 +48,11 @@ namespace Askify.DataAccessLayer.Data
 
         public async Task<bool> CompleteAsync() => await _context.SaveChangesAsync() > 0;
         public void Dispose() => _context.Dispose();
+
+        public DbConnection GetConnection()
+        {
+            return _context.Database.GetDbConnection();
+        }
     }
 
 }

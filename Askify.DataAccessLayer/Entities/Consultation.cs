@@ -5,6 +5,8 @@
         public int Id { get; set; }
         public string UserId { get; set; } = null!;
         public string? ExpertId { get; set; }
+        public string Title { get; set; } = null!; // Added title field
+        public string Description { get; set; } = null!; // Added description field
         public bool IsFree { get; set; }
         public bool IsPaid { get; set; }
         public bool IsOpenRequest { get; set; }
