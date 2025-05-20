@@ -181,6 +181,7 @@ interface RegisterData {
   email: string;
   password: string;
   fullName: string;
+  role: string;  // Add role field
 }
 
 export const register = createAsyncThunk(
@@ -189,12 +190,13 @@ export const register = createAsyncThunk(
     try {
       console.log('Registration data:', registerData);
       
-      // Try the exact format your backend expects
+      // Update the payload to include role
       const payload = {
         email: registerData.email,
         password: registerData.password,
-        confirmPassword: registerData.password, // Backend might require this
-        fullName: registerData.fullName
+        confirmPassword: registerData.password,
+        fullName: registerData.fullName,
+        role: registerData.role
       };
       
       console.log('Sending registration request with payload:', payload);

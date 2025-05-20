@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../hooks';
+import { useAppSelector } from '../hooks';
 import api from '../api/api';
 
 interface UserProfile {
@@ -30,7 +30,6 @@ interface Post {
 const ProfilePage: React.FC = () => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);

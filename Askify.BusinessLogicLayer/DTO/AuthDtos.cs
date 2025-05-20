@@ -27,6 +27,9 @@ namespace Askify.BusinessLogicLayer.DTO
 
         [Required]
         public string FullName { get; set; } = null!;
+        [Required]
+        public string Role { get; set; } = null!;
+
     }
 
     public class AuthResponseDto

@@ -4,16 +4,19 @@ import { useAppDispatch, useAppSelector } from './hooks.ts';
 import { checkAuthStatus } from './features/auth/authSlice';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
-import ProtectedRoute from './components/ProtectedRoute';
 import ConsultationsPage from './pages/ConsultationsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ConsultationDetailPage from './pages/ConsultationDetailPage';
 import ProfilePage from './pages/ProfilePage.tsx';
+import CreateConsultationPage from './pages/CreateConsultationPage';
+import AnswerConsultationsPage from './pages/AnswerConsultationsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import ConsultationRequestsPage from './pages/ConsultationRequestsPage';
 
 function App() {
   const dispatch = useAppDispatch();
-  const { isAuthenticated } = useAppSelector(state => state.auth);
+  const { isAuthenticated, user } = useAppSelector(state => state.auth);
 
   // Check authentication status when app loads
   useEffect(() => {
@@ -60,12 +63,50 @@ function App() {
             <Navigate to="/login" replace />
           )
         } />
+        <Route path="/consultations/new" element={
+          <MainLayout>
+            {user?.role === 'User' ? (
+              <CreateConsultationPage />
+            ) : (
+              <Navigate to="/" replace />
+            )}
+          </MainLayout>
+        } />
+        <Route path="/consultation-requests" element={
+          <MainLayout>
+            {user?.role === 'Expert' ? (
+              <ConsultationRequestsPage />
+            ) : (
+              <Navigate to="/" replace />
+            )}
+          </MainLayout>
+        } />
         <Route path="/my-consultations" element={
-          <ProtectedRoute>
+          <MainLayout>
+            {isAuthenticated ? (
+              <ConsultationsPage showMine={true} />
+            ) : (
+              <Navigate to="/login" replace />
+            )}
+          </MainLayout>
+        } />
+        <Route path="/notifications" element={
+          isAuthenticated ? (
             <MainLayout>
-              <ConsultationsPage />
+              <NotificationsPage />
             </MainLayout>
-          </ProtectedRoute>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } />
+        <Route path="/answer-consultations" element={
+          isAuthenticated && user?.role === 'Expert' ? (
+            <MainLayout>
+              <AnswerConsultationsPage />
+            </MainLayout>
+          ) : (
+            <Navigate to="/" replace />
+          )
         } />
 
         {/* Fallback route */}

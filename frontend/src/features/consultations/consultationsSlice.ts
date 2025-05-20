@@ -52,7 +52,7 @@ export const getConsultationById = createAsyncThunk(
   'consultations/getById',
   async (id: number, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/consultations/${id}`);
+      const response = await api.get(`/Consultations`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch consultation');
@@ -65,10 +65,23 @@ export const getConsultationsByUserId = createAsyncThunk(
   'consultations/getByUserId',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/consultations/user/${userId}`);
+      const response = await api.get(`/Consultations`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch user consultations');
+    }
+  }
+);
+
+// Async thunk for fetching open consultation requests
+export const fetchOpenConsultationRequests = createAsyncThunk(
+  'consultations/fetchOpenRequests',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/Consultations');
+      return response.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch open requests');
     }
   }
 );
@@ -124,6 +137,20 @@ const consultationsSlice = createSlice({
         state.consultations = action.payload;
       })
       .addCase(getConsultationsByUserId.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // fetchOpenConsultationRequests
+      .addCase(fetchOpenConsultationRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchOpenConsultationRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.consultations = action.payload;
+      })
+      .addCase(fetchOpenConsultationRequests.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

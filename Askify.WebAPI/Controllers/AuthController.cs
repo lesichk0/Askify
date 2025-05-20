@@ -28,15 +28,40 @@ namespace Askify.WebAPI.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        public async Task<ActionResult> Register([FromBody] RegisterDto registerDto)
         {
-            var result = await _authService.RegisterAsync(registerDto);
-            if (result == null || !result.IsSuccess)
+            if (!ModelState.IsValid)
             {
-                return BadRequest(result?.Message ?? "Registration failed");
+                return BadRequest(ModelState);
             }
 
-            return Ok(result);
+            try
+            {
+                // Validate role is either "User" or "Expert"
+                if (!string.IsNullOrEmpty(registerDto.Role) && registerDto.Role != "User" && registerDto.Role != "Expert")
+                {
+                    return BadRequest(new { message = "Invalid role. Role must be either 'User' or 'Expert'." });
+                }
+                
+                // Default to "User" if no role provided
+                string role = string.IsNullOrEmpty(registerDto.Role) ? "User" : registerDto.Role;
+                
+                var result = await _authService.RegisterAsync(
+                    registerDto
+                );
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(new { message = result.Message });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                //_logger.LogError(ex, "Error during user registration");
+                return StatusCode(500, new { message = "An error occurred during registration." });
+            }
         }
     }
 }

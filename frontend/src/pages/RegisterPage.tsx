@@ -9,6 +9,7 @@ const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [role, setRole] = useState('User'); // Default role is User
   
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ const RegisterPage: React.FC = () => {
     
     setPasswordError('');
     
-    const result = await dispatch(register({ email, password, fullName }));
+    const result = await dispatch(register({ email, password, fullName, role }));
     if (register.fulfilled.match(result)) {
       // Registration successful, redirect to login
       navigate('/login', { replace: true });
@@ -36,7 +37,7 @@ const RegisterPage: React.FC = () => {
     <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-8 mt-10">
       <h2 className="text-2xl font-bold text-amber-700 mb-6 text-center">Create an Account</h2>
       
-      {/* Make sure your error display logic handles strings properly */}
+      {/* Error display */}
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}
@@ -44,6 +45,37 @@ const RegisterPage: React.FC = () => {
       )}
       
       <form onSubmit={handleSubmit}>
+        {/* Role selection */}
+        <div className="mb-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2">
+            I am registering as
+          </label>
+          <div className="flex space-x-4">
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                className="form-radio text-amber-600"
+                name="role"
+                value="User"
+                checked={role === 'User'}
+                onChange={() => setRole('User')}
+              />
+              <span className="ml-2">User (I need consultations)</span>
+            </label>
+            <label className="inline-flex items-center">
+              <input
+                type="radio"
+                className="form-radio text-amber-600"
+                name="role"
+                value="Expert"
+                checked={role === 'Expert'}
+                onChange={() => setRole('Expert')}
+              />
+              <span className="ml-2">Expert (I provide consultations)</span>
+            </label>
+          </div>
+        </div>
+        
         <div className="mb-4">
           <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="fullName">
             Full Name

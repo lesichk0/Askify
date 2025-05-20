@@ -113,7 +113,7 @@ namespace Askify.BusinessLogicLayer.Services
             }
 
             // Add user to "User" role
-            await _userManager.AddToRoleAsync(user, "User");
+            await _userManager.AddToRoleAsync(user, registerDto.Role);
             
             // Generate token for the new user
             var userRoles = await _userManager.GetRolesAsync(user);
