@@ -13,7 +13,7 @@ interface ConsultationCardProps {
   description?: string;
   status?: 'pending' | 'accepted' | 'completed' | 'cancelled';
   date?: string;
-  publicable?: boolean; // Add publicable property to the interface
+  isPublicable?: boolean; // Add publicable property to the interface
 }
 
 const ConsultationCard: React.FC<ConsultationCardProps> = (props) => {

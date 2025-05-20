@@ -151,5 +151,13 @@ namespace Askify.BusinessLogicLayer.Services
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
             return user?.HasUsedFreeConsultation ?? false;
         }
+
+        public async Task<IEnumerable<ConsultationDto>> GetConsultationsByUserIdAsync(string userId)
+        {
+            var consultations = await _unitOfWork.Consultations.FindAsync(
+                c => c.UserId == userId || c.ExpertId == userId);
+                
+            return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
+        }
     }
 }

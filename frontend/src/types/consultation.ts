@@ -2,13 +2,13 @@ export interface Consultation {
   id: number;
   title: string;
   description: string;
-  status: 'pending' | 'accepted' | 'completed' | 'cancelled';
+  status:string;
   expertId: string;
   expertName: string;
   expertAvatar?: string;
   userId: string;
   createdAt: string;
   completedAt?: string;
-  publicable: boolean;
+  isPublicable: boolean;
   tags?: string[];
 }

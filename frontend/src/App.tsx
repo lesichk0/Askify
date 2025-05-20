@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useAppDispatch } from './hooks.ts';
+import { useAppDispatch, useAppSelector } from './hooks.ts';
 import { checkAuthStatus } from './features/auth/authSlice';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/HomePage';
@@ -9,9 +9,11 @@ import ConsultationsPage from './pages/ConsultationsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ConsultationDetailPage from './pages/ConsultationDetailPage';
+import ProfilePage from './pages/ProfilePage.tsx';
 
 function App() {
   const dispatch = useAppDispatch();
+  const { isAuthenticated } = useAppSelector(state => state.auth);
 
   // Check authentication status when app loads
   useEffect(() => {
@@ -47,8 +49,17 @@ function App() {
             <ConsultationDetailPage />
           </MainLayout>
         } />
-
-        {/* Protected routes - add these as you build the pages */}
+        
+        {/* Protected routes */}
+        <Route path="/profile" element={
+          isAuthenticated ? (
+            <MainLayout>
+              <ProfilePage />
+            </MainLayout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        } />
         <Route path="/my-consultations" element={
           <ProtectedRoute>
             <MainLayout>

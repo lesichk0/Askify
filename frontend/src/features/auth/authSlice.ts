@@ -8,7 +8,18 @@ interface User {
   id: string;
   fullName: string;
   email: string;
-  role: string; // Add role property
+  role: string;
+}
+
+// Define LoginResponse to match the actual API response format
+interface LoginResponse {
+  isSuccess: boolean;
+  message: string | null;
+  token: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  roles: string[];
 }
 
 // Async thunks for authentication
@@ -36,8 +47,7 @@ export const login = createAsyncThunk(
         localStorage.setItem('token', response.data);
       }
       
-      // Use inline type instead of referencing LoginResponse
-      return response.data as { user: User; token: string };
+      return response.data as LoginResponse;
     } catch (error: any) {
       console.error('Login error details:', error);
       
@@ -73,6 +83,27 @@ export const logout = createAsyncThunk<null>(
   }
 );
 
+// Helper function to decode JWT token
+const decodeToken = (token: string) => {
+  try {
+    // JWT tokens are in format: header.payload.signature
+    // We only need the payload part
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`)
+        .join('')
+    );
+    
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+};
+
 export const checkAuthStatus = createAsyncThunk(
   'auth/checkStatus',
   async (_, { rejectWithValue }) => {
@@ -80,11 +111,67 @@ export const checkAuthStatus = createAsyncThunk(
     if (!token) return null;
     
     try {
-      const response = await api.get('/auth/me');
-      return response.data;
+      // Instead of using /auth/me, decode the token to get the user ID
+      const decodedToken = decodeToken(token);
+      
+      // If token is invalid or expired, reject
+      if (!decodedToken) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return rejectWithValue('Invalid token');
+      }
+      
+      // Check if token is expired
+      const currentTime = Date.now() / 1000;
+      if (decodedToken.exp && decodedToken.exp < currentTime) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        return rejectWithValue('Token expired');
+      }
+      
+      // Try to get user from localStorage first
+      const storedUser = getUserFromLocalStorage();
+      if (storedUser) {
+        return storedUser;
+      }
+      
+      // If user data isn't in localStorage, fetch it using the ID from token
+      const userId = decodedToken.sub || decodedToken.nameid; // Different JWT libraries use different claim names
+      if (userId) {
+        const response = await api.get(`/users/${userId}`);
+        const userData = response.data;
+        
+        // Save user data to localStorage for future use
+        saveUserToLocalStorage(userData);
+        return userData;
+      }
+      
+      // If we can't get the user ID from token, reject
+      return rejectWithValue('Could not identify user from token');
     } catch (error: any) {
-      // If token is invalid, logout
+      console.error('Authentication check failed:', error);
+      
+      // Handle different types of errors
+      if (error.response?.status === 404) {
+        console.warn('Endpoint not found. Using token data instead.');
+        // Try to use token information as fallback
+        const decodedToken = decodeToken(token);
+        if (decodedToken && decodedToken.sub) {
+          // Create minimal user object from token claims
+          const minimalUser = {
+            id: decodedToken.sub || decodedToken.nameid,
+            email: decodedToken.email || '',
+            fullName: decodedToken.name || '',
+            role: decodedToken.role || 'User'
+          };
+          saveUserToLocalStorage(minimalUser);
+          return minimalUser;
+        }
+      }
+      
+      // If token is invalid or other error occurs, logout
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       return rejectWithValue(error.response?.data?.message || 'Authentication failed');
     }
   }
@@ -143,6 +230,33 @@ export const register = createAsyncThunk(
   }
 );
 
+// Helper functions for localStorage
+const saveUserToLocalStorage = (user: any) => {
+  try {
+    localStorage.setItem('user', JSON.stringify(user));
+  } catch (error) {
+    console.error('Error saving user to localStorage:', error);
+  }
+};
+
+const getUserFromLocalStorage = () => {
+  try {
+    const userString = localStorage.getItem('user');
+    return userString ? JSON.parse(userString) : null;
+  } catch (error) {
+    console.error('Error getting user from localStorage:', error);
+    return null;
+  }
+};
+
+const removeUserFromLocalStorage = () => {
+  try {
+    localStorage.removeItem('user');
+  } catch (error) {
+    console.error('Error removing user from localStorage:', error);
+  }
+};
+
 interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
@@ -151,10 +265,11 @@ interface AuthState {
   error: string | null;
 }
 
+// Update initial state to check localStorage first
 const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
-  username: null,
+  isAuthenticated: !!localStorage.getItem('token'),
+  user: getUserFromLocalStorage(),
+  username: getUserFromLocalStorage()?.fullName || null,
   loading: false,
   error: null
 };
@@ -174,26 +289,24 @@ const authSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(login.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(login.fulfilled, (state, action: PayloadAction<LoginResponse>) => {
         state.isAuthenticated = true;
         
-        // Handle different response structures
-        if (action.payload.user) {
-          // Response has a user object as expected
-          state.user = action.payload.user;
-          state.username = action.payload.user.fullName || action.payload.user.email;
-        } else {
-          // Response might be the user object directly or have a different structure
-          // Try to extract user information from the response
-          const userData = action.payload;
-          state.user = {
-            id: userData.id || '',
-            email: userData.email || '',
-            fullName: userData.fullName || userData.name || userData.email || '',
-            role: userData.role || 'User'
-          };
-          state.username = userData.fullName || userData.name || userData.email || '';
-        }
+        const userData = action.payload;
+        
+        // Map the API response to our User interface
+        const user: User = {
+          id: userData.userId, // Use userId instead of id
+          email: userData.email,
+          fullName: userData.fullName,
+          role: userData.roles && userData.roles.length > 0 ? userData.roles[0] : 'User'
+        };
+        
+        state.user = user;
+        state.username = user.fullName;
+        
+        // Save user to localStorage
+        saveUserToLocalStorage(user);
         
         state.loading = false;
       })
@@ -207,6 +320,8 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.user = null;
         state.username = null;
+        // Remove user from localStorage
+        removeUserFromLocalStorage();
       })
       
       // Check auth status cases

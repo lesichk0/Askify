@@ -246,5 +246,32 @@ namespace Askify.WebAPI.Controllers
                 return StatusCode(500, new { message = "An error occurred while retrieving consultations", detail = ex.Message });
             }
         }
+
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<ConsultationDto>>> GetByUserId(string userId)
+        {
+            try
+            {
+                _logger.LogInformation("Fetching consultations for user ID: {UserId}", userId);
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return BadRequest("User ID is required");
+                }
+                
+                // Get all consultations related to this user (either as owner or expert)
+                var consultations = await _consultationService.GetConsultationsByUserIdAsync(userId);
+                
+                _logger.LogInformation("Found {Count} consultations for user ID: {UserId}", 
+                    consultations.Count(), userId);
+                    
+                return Ok(consultations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving consultations for user with ID {UserId}", userId);
+                return StatusCode(500, new { message = "An error occurred while retrieving consultations", detail = ex.Message });
+            }
+        }
     }
 }

@@ -1,57 +1,30 @@
 import React, { useEffect } from 'react';
 import ConsultationCard from '../components/ConsultationCard';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { fetchPublicConsultations } from '../features/consultations/consultationsSlice';
-
-// This would typically come from your API or Redux store
-const sampleConsultations = [
-  {
-    id: 1,
-    title: "JavaScript Modern Frameworks Consultation",
-    expertName: "Alex Johnson",
-    description: "Get expert advice on React, Angular, and Vue.js for your web application development. Learn about best practices and architecture patterns.",
-    status: "pending" as const,
-    date: "May 25, 2023"
-  },
-  {
-    id: 2,
-    title: "Database Design and Optimization",
-    expertName: "Maria Garcia",
-    description: "Consultation on designing efficient database schemas, indexing strategies, and query optimization for high-performance applications.",
-    status: "accepted" as const,
-    date: "May 27, 2023"
-  },
-  {
-    id: 3,
-    title: "Cloud Architecture and Deployment",
-    expertName: "James Wilson",
-    description: "Expert guidance on cloud infrastructure design, serverless architecture, and continuous deployment pipelines for scalable applications.",
-    status: "completed" as const,
-    date: "May 21, 2023"
-  },
-  {
-    id: 4,
-    title: "Mobile App Development Strategy",
-    expertName: "Sarah Chen",
-    description: "Strategic consultation on cross-platform vs. native app development, user experience design, and effective monetization strategies.",
-    status: "pending" as const,
-    date: "May 30, 2023"
-  },
-];
+import { fetchConsultations } from '../features/consultations/consultationsSlice';
 
 const HomePage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { loading } = useAppSelector(state => state.consultations);
+  const { consultations, loading, error } = useAppSelector(state => state.consultations);
   
   useEffect(() => {
     // Fetch public consultations when component mounts
-    dispatch(fetchPublicConsultations());
+    dispatch(fetchConsultations());
   }, [dispatch]);
 
-  // Filter to only show completed consultations
-  const completedConsultations = sampleConsultations.filter(
-    consultation => consultation.status === 'completed'
+  // Filter to only show completed and public consultations
+  const featuredConsultations = consultations.filter(
+    consultation => consultation.isPublicable === true
   );
+  
+  // Format date helper function
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
   
   return (
     <div>
@@ -93,16 +66,20 @@ const HomePage: React.FC = () => {
             <div className="col-span-full flex justify-center py-10">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
             </div>
-          ) : completedConsultations.length > 0 ? (
-            completedConsultations.map((consultation) => (
+          ) : error ? (
+            <div className="col-span-full text-center py-10 bg-red-50 rounded-lg">
+              <p className="text-lg text-red-600">Error loading consultations: {error}</p>
+            </div>
+          ) : featuredConsultations.length > 0 ? (
+            featuredConsultations.map((consultation) => (
               <ConsultationCard
                 key={consultation.id}
                 id={consultation.id}
-                title={consultation.title}
-                expertName={consultation.expertName}
-                description={consultation.description}
-                status={consultation.status}
-                date={consultation.date}
+                title={consultation.title || 'Untitled Consultation'}
+                expertName={consultation.expertName || 'Unknown Expert'}
+                description={consultation.description || 'No description available.'}
+                status={consultation.status as any}
+                date={formatDate(consultation.createdAt)}
               />
             ))
           ) : (

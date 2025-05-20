@@ -99,7 +99,7 @@ const ConsultationDetailPage: React.FC = () => {
     description, 
     status, 
     expertName, 
-    expertAvatar,
+    
     createdAt, 
     completedAt 
   } = currentConsultation;
@@ -150,13 +150,7 @@ const ConsultationDetailPage: React.FC = () => {
           </div>
           
           <div className="flex items-center mb-6">
-            {expertAvatar ? (
-              <img 
-                src={expertAvatar} 
-                alt={expertName} 
-                className="w-12 h-12 rounded-full mr-4"
-              />
-            ) : (
+            {  (
               <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mr-4 border border-amber-300">
                 <span className="text-amber-700 font-semibold">
                   {expertName ? expertName.charAt(0) : 'E'}
