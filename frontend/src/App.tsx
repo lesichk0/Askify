@@ -13,6 +13,7 @@ import CreateConsultationPage from './pages/CreateConsultationPage';
 import AnswerConsultationsPage from './pages/AnswerConsultationsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ConsultationRequestsPage from './pages/ConsultationRequestsPage';
+import ExpertsPage from './pages/ExpertsPage.tsx';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -107,6 +108,11 @@ function App() {
           ) : (
             <Navigate to="/" replace />
           )
+        } />
+        <Route path="/experts" element={
+          <MainLayout>
+            <ExpertsPage />
+          </MainLayout>
         } />
 
         {/* Fallback route */}

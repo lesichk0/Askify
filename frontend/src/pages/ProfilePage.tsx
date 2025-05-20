@@ -35,6 +35,12 @@ const ProfilePage: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -102,6 +108,77 @@ const ProfilePage: React.FC = () => {
     fetchProfileData();
   }, [isAuthenticated, navigate, user]);
 
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!postTitle.trim() || !postContent.trim()) {
+      setPostError('Please fill in all fields');
+      return;
+    }
+    
+    setSubmitting(true);
+    setPostError(null);
+    
+    try {
+      // Ensure we get the token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setPostError('Authentication token missing. Please log in again.');
+        // If no token is found, redirect to login
+        navigate('/login');
+        return;
+      }
+
+      // Make the API call with the authorization header
+      await api.post('/posts', 
+        {
+          title: postTitle,
+          content: postContent
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      // After successful creation, refresh the posts list
+      if (user?.id) {
+        const postsResponse = await api.get(`/posts/user/${user.id}`);
+        if (Array.isArray(postsResponse.data)) {
+          setPosts(postsResponse.data);
+        }
+      }
+      
+      setPostTitle('');
+      setPostContent('');
+      setShowCreatePost(false);
+      setSuccessMessage('Post created successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+    } catch (err: any) {
+      console.error('Error creating post:', err);
+      
+      // Specifically handle 401 Unauthorized errors
+      if (err.response?.status === 401) {
+        setPostError('Your session has expired. Please log in again.');
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+        return;
+      }
+      
+      setPostError(err.response?.data?.message || 'Failed to create post. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -126,7 +203,7 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Profile Header */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
         <div className="p-8">
@@ -166,9 +243,101 @@ const ProfilePage: React.FC = () => {
         </div>
       </div>
       
+      {/* Create Post Button and Section */}
+      <div className="mt-8 flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">My Posts</h2>
+        <button
+          onClick={() => setShowCreatePost(true)}
+          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+          </svg>
+          Create Post
+        </button>
+      </div>
+      
+      {/* Success Message */}
+      {successMessage && (
+        <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md border border-green-200">
+          {successMessage}
+        </div>
+      )}
+      
+      {/* Create Post Form */}
+      {showCreatePost && (
+        <div className="mt-4 bg-white p-6 rounded-lg shadow-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">Create New Post</h3>
+            <button
+              onClick={() => setShowCreatePost(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {postError && (
+            <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md border border-red-200">
+              {postError}
+            </div>
+          )}
+          
+          <form onSubmit={handleCreatePost}>
+            <div className="mb-4">
+              <label htmlFor="postTitle" className="block text-gray-700 text-sm font-bold mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                id="postTitle"
+                value={postTitle}
+                onChange={(e) => setPostTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Enter post title"
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="postContent" className="block text-gray-700 text-sm font-bold mb-2">
+                Content
+              </label>
+              <textarea
+                id="postContent"
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Write your post content here..."
+                rows={6}
+                required
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowCreatePost(false)}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                {submitting ? 'Creating...' : 'Create Post'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      
       {/* User Posts */}
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">My Posts</h2>
         
         {posts.length === 0 ? (
           <div className="bg-gray-50 rounded-lg p-10 text-center">
