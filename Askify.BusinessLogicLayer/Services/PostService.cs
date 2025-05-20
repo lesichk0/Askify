@@ -186,5 +186,11 @@ namespace Askify.BusinessLogicLayer.Services
             var posts = savedPosts.Select(sp => sp.Post);
             return _mapper.Map<IEnumerable<PostDto>>(posts);
         }
+
+        public async Task<int> GetUserPostsCountAsync(string userId)
+        {
+            var posts = await _unitOfWork.Posts.FindAsync(p => p.AuthorId == userId);
+            return posts.Count();
+        }
     }
 }

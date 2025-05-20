@@ -15,5 +15,6 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<bool> SavePostAsync(int postId, string userId);
         Task<bool> UnsavePostAsync(int postId, string userId);
         Task<IEnumerable<PostDto>> GetSavedPostsAsync(string userId);
+        Task<int> GetUserPostsCountAsync(string userId);
     }
 }

@@ -140,6 +140,12 @@ namespace Askify.BusinessLogicLayer.Services
             return await _unitOfWork.CompleteAsync();
         }
 
+        public async Task<int> GetUserConsultationsCountAsync(string userId)
+        {
+            var consultations = await _unitOfWork.Consultations.FindAsync(c => c.UserId == userId || c.ExpertId == userId);
+            return consultations.Count();
+        }
+
         private async Task<bool> HasUsedFreeConsultationAsync(string userId)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
