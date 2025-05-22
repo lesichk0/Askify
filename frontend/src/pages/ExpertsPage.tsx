@@ -25,20 +25,70 @@ const ExpertsPage: React.FC = () => {
     const fetchExperts = async () => {
       setLoading(true);
       try {
-        // Fetch all users and filter experts on client side
-        const response = await api.get('/users');
-        console.log('API Response:', response.data);
+        console.log('Fetching experts...');
         
-        if (Array.isArray(response.data)) {
-          // Filter users with role "Expert"
-          const expertUsers = response.data.filter(user => 
-            user.role === 'Expert' || user.role === 'EXPERT'
-          );
+        // Try experts endpoint first
+        let expertUsers = [];
+        try {
+          const expertsResponse = await api.get('/users/experts');
+          console.log('Experts API Response:', expertsResponse.data);
+          
+          if (Array.isArray(expertsResponse.data) && expertsResponse.data.length > 0) {
+            expertUsers = expertsResponse.data;
+          } 
+        } catch (error) {
+          console.error('Error fetching from experts endpoint:', error);
+        }
+        
+        // If no experts found, try the general users endpoint and filter
+        if (expertUsers.length === 0) {
+          console.log('No experts found from specialized endpoint, fetching all users...');
+          const usersResponse = await api.get('/users');
+          console.log('All Users API Response:', usersResponse.data);
+          
+          if (Array.isArray(usersResponse.data)) {
+            expertUsers = usersResponse.data.filter(user => {
+              // Case-insensitive check for Expert role
+              const isExpertByRole = user.role?.toLowerCase() === 'expert' || 
+                                     user.Role?.toLowerCase() === 'expert';
+              
+              // Check verified flag
+              const isVerifiedExpert = user.isVerifiedExpert === true || 
+                                      user.IsVerifiedExpert === true;
+              
+              console.log(`User ${user.fullName || user.FullName}: Role=${user.role || user.Role}, IsExpert=${isExpertByRole}, IsVerified=${isVerifiedExpert}`);
+              
+              // Include user if either condition is true
+              return isExpertByRole || isVerifiedExpert;
+            });
+          }
+        }
+        
+        // If we have experts, set them in state
+        if (expertUsers.length > 0) {
+          console.log(`Found ${expertUsers.length} experts`);
           setExperts(expertUsers);
         } else {
-          console.error('Unexpected API response format:', response.data);
-          setError('Received unexpected data format from server');
-          setExperts([]);
+          console.warn('No experts found through any method');
+          // Just to test, create mock experts if none were found
+          if (import.meta.env.DEV) { // Use Vite's import.meta.env.DEV instead of process.env
+            setExperts([
+              {
+                id: '1',
+                fullName: 'Test Expert 1',
+                email: 'expert1@example.com',
+                bio: 'This is a test expert profile for development',
+                role: 'Expert'
+              },
+              {
+                id: '2',
+                fullName: 'Test Expert 2',
+                email: 'expert2@example.com',
+                bio: 'Another test expert profile',
+                role: 'Expert'
+              }
+            ]);
+          }
         }
       } catch (err) {
         console.error('Error fetching experts:', err);

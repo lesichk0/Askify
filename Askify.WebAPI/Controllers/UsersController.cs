@@ -2,7 +2,14 @@ using Askify.BusinessLogicLayer.DTO;
 using Askify.BusinessLogicLayer.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Askify.DataAccessLayer.Entities;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 
 namespace Askify.WebAPI.Controllers
 {
@@ -14,13 +21,15 @@ namespace Askify.WebAPI.Controllers
         private readonly IPostService _postService; // Assuming IPostService is registered
         private readonly IConsultationService _consultationService; // Assuming IConsultationService is registered
         private readonly ILogger<UsersController> _logger; // Assuming ILogger is registered
+        private readonly UserManager<User> _userManager;
 
-        public UsersController(IUserService userService, IPostService postService, IConsultationService consultationService, ILogger<UsersController> logger)
+        public UsersController(IUserService userService, IPostService postService, IConsultationService consultationService, ILogger<UsersController> logger, UserManager<User> userManager)
         {
             _userService = userService;
             _postService = postService;
             _consultationService = consultationService;
             _logger = logger;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -43,8 +52,47 @@ namespace Askify.WebAPI.Controllers
         [HttpGet("experts")]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetExperts()
         {
-            var experts = await _userService.GetExpertsAsync();
-            return Ok(experts);
+            try
+            {
+                _logger.LogInformation("Fetching experts");
+                var users = _userManager.Users.ToList();
+                var expertsList = new List<UserDto>();
+
+                foreach (var user in users)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    
+                    // Check if user is an expert (either by role or by IsVerifiedExpert flag)
+                    bool isExpert = roles.Contains("Expert") || user.IsVerifiedExpert;
+                    
+                    _logger.LogInformation($"User {user.UserName}: Roles={string.Join(",", roles)}, IsVerifiedExpert={user.IsVerifiedExpert}, IsExpert={isExpert}");
+                    
+                    if (isExpert)
+                    {
+                        var expertDto = new UserDto
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Bio = user.Bio,
+                            Email = user.Email,
+                            AvatarUrl = user.AvatarUrl,
+                            IsVerifiedExpert = user.IsVerifiedExpert,
+                            IsBlocked = user.IsBlocked,
+                            Role = "Expert" // Explicitly set role to Expert
+                        };
+                        
+                        expertsList.Add(expertDto);
+                    }
+                }
+
+                _logger.LogInformation($"Found {expertsList.Count} experts");
+                return Ok(expertsList);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving experts");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
         [HttpGet("search")]

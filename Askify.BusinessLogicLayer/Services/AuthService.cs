@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace Askify.BusinessLogicLayer.Services
 {
@@ -99,7 +100,9 @@ namespace Askify.BusinessLogicLayer.Services
                 UserName = registerDto.Email,
                 Email = registerDto.Email,
                 FullName = registerDto.FullName,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                // Set IsVerifiedExpert to true if role is Expert
+                IsVerifiedExpert = registerDto.Role?.Equals("Expert", StringComparison.OrdinalIgnoreCase) ?? false
             };
 
             var result = await _userManager.CreateAsync(user, registerDto.Password);
@@ -112,9 +115,18 @@ namespace Askify.BusinessLogicLayer.Services
                 };
             }
 
-            // Add user to "User" role
-            await _userManager.AddToRoleAsync(user, registerDto.Role);
+            // Normalize the role to ensure consistency
+            string role = registerDto.Role?.Equals("Expert", StringComparison.OrdinalIgnoreCase) ?? false 
+                ? "Expert" 
+                : "User";
             
+            // Add user to role
+            await _userManager.AddToRoleAsync(user, role);
+            
+            // Confirm the role was added correctly (for debugging)
+            var roles = await _userManager.GetRolesAsync(user);
+            //_logger.LogInformation($"User {user.Email} was assigned roles: {string.Join(", ", roles)}");
+
             // Generate token for the new user
             var userRoles = await _userManager.GetRolesAsync(user);
             var token = GenerateJwtToken(user.Id, userRoles);
