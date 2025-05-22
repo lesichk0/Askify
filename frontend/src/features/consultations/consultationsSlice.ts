@@ -54,12 +54,30 @@ export const getConsultationById = createAsyncThunk(
     try {
       // Add more detailed logging
       console.log(`Making API request to get consultation #${consultationId}`);
-      const response = await api.get(`/consultations/${consultationId}`);
+      
+      // Include a timeout to ensure we get a response
+      const response = await api.get(`/consultations/${consultationId}`, {
+        timeout: 30000  // 30 seconds timeout
+      });
+      
       console.log('API response:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching consultation:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch consultation');
+      
+      // More detailed error logging
+      if (error.response) {
+        console.error(`Status: ${error.response.status}`);
+        console.error('Headers:', error.response.headers);
+        console.error('Data:', error.response.data);
+        
+        // Handle specific error codes
+        if (error.response.status === 403) {
+          return rejectWithValue('You do not have permission to view this consultation. If you are an expert, please ensure your role is set correctly.');
+        }
+      }
+      
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch consultation details');
     }
   }
 );
@@ -69,7 +87,7 @@ export const getConsultationsByUserId = createAsyncThunk(
   'consultations/getByUserId',
   async (userId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/Consultations`);
+      const response = await api.get(`/Consultations/user/${userId}`);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch user consultations');
@@ -82,9 +100,11 @@ export const fetchOpenConsultationRequests = createAsyncThunk(
   'consultations/fetchOpenRequests',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/Consultations');
+      // Use the expert-specific endpoint for available consultations
+      const response = await api.get('/Consultations/expert/available');
       return response.data;
     } catch (error: any) {
+      console.error('Error fetching open requests:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch open requests');
     }
   }

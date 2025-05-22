@@ -85,8 +85,28 @@ const ConsultationDetailPage: React.FC = () => {
       await api.post(`/consultations/${id}/accept`);
       // Refresh consultation data
       dispatch(getConsultationById(parseInt(id)));
+      // Show success message
+      alert('You have successfully accepted this consultation request.');
     } catch (error) {
       console.error('Error accepting consultation:', error);
+      alert('Failed to accept consultation. Please try again.');
+    }
+  };
+  
+  const handleDeclineConsultation = async () => {
+    if (!id) return;
+    
+    if (window.confirm('Are you sure you want to decline this consultation request?')) {
+      try {
+        await api.post(`/consultations/${id}/cancel`);
+        // Refresh consultation data
+        dispatch(getConsultationById(parseInt(id)));
+        // Show success message
+        alert('You have declined this consultation request.');
+      } catch (error) {
+        console.error('Error declining consultation:', error);
+        alert('Failed to decline consultation. Please try again.');
+      }
     }
   };
   
@@ -298,7 +318,7 @@ const ConsultationDetailPage: React.FC = () => {
             {/* Use fallbacks inline rather than in destructuring */}
             <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
             <span className={`px-4 py-1 rounded-full text-sm font-medium ${
-              status === 'completed' ? 'bg-green-100 text-green-800' :
+              status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
               status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
               status === 'accepted' ? 'bg-blue-100 text-blue-800' :
               'bg-gray-100 text-gray-800'
@@ -323,7 +343,7 @@ const ConsultationDetailPage: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-medium text-stone-800">Expert: {expertName || 'Not Assigned'}</h3>
-              {status === 'completed' && formattedCompletedAt && (
+              {status?.toLowerCase() === 'completed' && formattedCompletedAt && (
                 <p className="text-sm text-stone-500">
                   Completed on {formattedCompletedAt}
                 </p>
@@ -335,7 +355,7 @@ const ConsultationDetailPage: React.FC = () => {
             <p className="text-sm text-gray-500">Created: {formattedCreatedAt}</p>
           </div>
           
-          {isAuthenticated && status === 'completed' && (
+          {isAuthenticated && status?.toLowerCase() === 'completed' && (
             <div className="mt-8">
               <h3 className="text-xl font-semibold mb-4">Ask a follow-up question</h3>
               <textarea 
@@ -384,14 +404,13 @@ const ConsultationDetailPage: React.FC = () => {
           </div>
         </div>
       )}
-      
-      {/* Expert Action Buttons */}
+        {/* Expert Action Buttons */}
       {isAuthenticated && user?.role === 'Expert' && (
         <div className="mt-6 border-t border-gray-200 pt-6">
           <h3 className="text-xl font-semibold mb-4">Expert Actions</h3>
-          
-          {/* Expert Response Form - For pending consultations */}
-          {currentConsultation.status === 'pending' && (
+            {/* Expert Response Form - For pending consultations */}
+          {(currentConsultation?.status?.toLowerCase() === 'pending' || 
+            currentConsultation?.status?.toLowerCase() === 'Pending') && (
             <div className="mb-6 bg-gray-50 p-4 rounded-lg">
               <h4 className="font-medium text-gray-800 mb-2">Send a Response to This Request</h4>
               <textarea
@@ -414,26 +433,33 @@ const ConsultationDetailPage: React.FC = () => {
                 {submitting ? 'Sending...' : 'Send Response'}
               </button>
             </div>
-          )}
-          
-          {/* Existing buttons */}
-          {currentConsultation.status === 'Pending' && (
-            <button 
-              onClick={handleAcceptConsultation}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mr-3"
-            >
-              Accept Consultation
-            </button>
-          )}
-          
-          {currentConsultation.status === 'accepted' && currentConsultation.expertId === user?.id && (
-            <button 
-              onClick={handleCompleteConsultation}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-            >
-              Mark as Completed
-            </button>
-          )}
+          )}            {/* Expert Action buttons */}
+          {(currentConsultation?.status?.toLowerCase() === 'pending' || 
+            currentConsultation?.status?.toLowerCase() === 'Pending') && (
+            <div className="flex space-x-4">
+              <button 
+                onClick={handleAcceptConsultation}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              >
+                Accept Consultation
+              </button>
+              <button 
+                onClick={handleDeclineConsultation}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+              >
+                Decline Consultation
+              </button>
+            </div>
+          )}            {(currentConsultation?.status?.toLowerCase() === 'accepted' || 
+              currentConsultation?.status?.toLowerCase() === 'Accepted') && 
+              currentConsultation?.expertId === user?.id && (
+              <button 
+                onClick={handleCompleteConsultation}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+              >
+                Mark as Completed
+              </button>
+            )}
         </div>
       )}
       
@@ -441,8 +467,7 @@ const ConsultationDetailPage: React.FC = () => {
       {isAuthenticated && userRole === 'User' && (
         <div className="mt-6 border-t border-gray-200 pt-6">
           <h3 className="text-xl font-semibold mb-4">Your Actions</h3>
-          
-          {currentConsultation.userId === user?.id && currentConsultation.status === 'Pending' && (
+            {currentConsultation.userId === user?.id && currentConsultation.status?.toLowerCase() === 'pending' && (
             <div className="flex space-x-4">
               <button 
                 onClick={() => navigate(`/consultations/${id}/edit`)}
@@ -459,10 +484,9 @@ const ConsultationDetailPage: React.FC = () => {
             </div>
           )}
         </div>
-      )}
-      
-      {/* Conversation Section - For accepted consultations */}
-      {typedConsultation?.status === 'accepted' && (
+      )}      {/* Conversation Section - For accepted consultations */}
+      {(typedConsultation?.status?.toLowerCase() === 'accepted' || 
+        typedConsultation?.status?.toLowerCase() === 'Accepted') && (
         <div className="mt-8 border-t border-gray-200 pt-6">
           <h3 className="text-xl font-semibold mb-4">Conversation</h3>
           

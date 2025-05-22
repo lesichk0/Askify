@@ -30,7 +30,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
   
   // Check if user is authenticated
   const { isAuthenticated } = useAppSelector(state => state.auth);
-  const canViewDetails = isAuthenticated || status === 'completed';
+  const canViewDetails = isAuthenticated || status?.toLowerCase() === 'completed';
   
   // Define status styles
   const statusStyles = {

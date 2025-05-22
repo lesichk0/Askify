@@ -63,16 +63,19 @@ namespace Askify.WebAPI.Controllers
                     }
                 }
                 else
-                {
-                    // For authenticated users, check if they have access to this consultation
+                {                // For authenticated users, check if they have access to this consultation
                     var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
                     
                     // Users can see their own consultations, or ones where they're the expert
                     bool hasAccess = consultation.UserId == userId || consultation.ExpertId == userId;
                     
-                    if (!hasAccess)
+                    // Experts can see all pending consultations too (so they can accept them)
+                    bool isExpert = userRole == "Expert";
+                    
+                    if (!hasAccess && !isExpert)
                     {
-                        // If it's not their consultation, they can only see public, completed ones
+                        // If it's not their consultation and they're not an expert, they can only see public, completed ones
                         if (consultation.Status?.ToLower() != "completed" || !consultation.IsPublicable)
                         {
                             return Forbid();
@@ -189,18 +192,27 @@ namespace Askify.WebAPI.Controllers
             var result = await _consultationService.CompleteConsultationAsync(id);
             if (!result) return BadRequest();
             return Ok();
-        }
-
-        [HttpPost("{id}/accept")]
+        }        [HttpPost("{id}/accept")]
         public async Task<IActionResult> Accept(int id)
         {
             var consultation = await _consultationService.GetByIdAsync(id);
             if (consultation == null) return NotFound();
             
+            // Get the expert ID from the authenticated user
             var expertId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
             
+            // Check authorization
             if (string.IsNullOrEmpty(expertId))
                 return Unauthorized();
+                
+            // Make sure the user is actually an expert
+            if (role != "Expert")
+                return Forbid("Only experts can accept consultations");
+                
+            // Make sure the consultation is still in Pending status
+            if (consultation.Status?.ToLower() != "pending")
+                return BadRequest("This consultation is no longer available for acceptance");
                 
             var result = await _consultationService.AcceptConsultationAsync(id, expertId);
             if (!result) return BadRequest();
@@ -271,6 +283,37 @@ namespace Askify.WebAPI.Controllers
             {
                 _logger.LogError(ex, "Error retrieving consultations for user with ID {UserId}", userId);
                 return StatusCode(500, new { message = "An error occurred while retrieving consultations", detail = ex.Message });
+            }
+        }
+
+        [HttpGet("expert/available")]
+        [Authorize(Roles = "Expert")]
+        public async Task<ActionResult<IEnumerable<ConsultationDto>>> GetAvailableForExperts()
+        {
+            try
+            {
+                _logger.LogInformation("Getting consultations available for experts");
+                
+                var expertId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(expertId))
+                {
+                    return Unauthorized();
+                }
+                
+                // Get all consultations
+                var allConsultations = await _consultationService.GetAllAsync();
+                
+                // Filter for open and pending consultations that don't already have this expert
+                var availableConsultations = allConsultations.Where(c => 
+                    c.Status?.ToLower() == "pending" && 
+                    (string.IsNullOrEmpty(c.ExpertId) || c.ExpertId != expertId));
+                
+                return Ok(availableConsultations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving consultations available for experts");
+                return StatusCode(500, new { message = "An error occurred while retrieving consultations" });
             }
         }
     }

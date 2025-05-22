@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../hooks';
 import api from '../api/api';
 
@@ -30,7 +30,6 @@ interface Post {
 const ProfilePage: React.FC = () => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
-  const location = useLocation();
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -42,12 +41,14 @@ const ProfilePage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate('/login');
       return;
     }
-      const fetchProfileData = async () => {
+    
+    const fetchProfileData = async () => {
       setLoading(true);
       try {
         // Fetch profile data
@@ -57,47 +58,6 @@ const ProfilePage: React.FC = () => {
         // Fetch posts
         const postsResponse = await api.get(`/posts/user/${user.id}`);
         setPosts(postsResponse.data);
-        
-        // Check for state passed from other components (like LoginPage)
-        if (location.state) {
-          const state = location.state as any;
-          if (state.showCreatePost) {
-            setShowCreatePost(true);
-            if (state.savedPostTitle) setPostTitle(state.savedPostTitle);
-            if (state.savedPostContent) setPostContent(state.savedPostContent);
-            if (state.message) setSuccessMessage(state.message);
-            
-            // Clear navigation state after using it to prevent re-applying on refresh
-            navigate(location.pathname, { replace: true, state: {} });
-          }
-        }
-        
-        // Check multiple storage locations for saved post data (with priority)
-        let savedPostTitle = null;
-        let savedPostContent = null;
-        
-        // First check sessionStorage
-        savedPostTitle = sessionStorage.getItem('savedPostTitle');
-        savedPostContent = sessionStorage.getItem('savedPostContent');
-        
-        // If not found in sessionStorage, check localStorage
-        if (!savedPostTitle || !savedPostContent) {
-          savedPostTitle = localStorage.getItem('savedPostTitle') || savedPostTitle;
-          savedPostContent = localStorage.getItem('savedPostContent') || savedPostContent;
-        }
-        
-        if (savedPostTitle && savedPostContent) {
-          setShowCreatePost(true);
-          setPostTitle(savedPostTitle);
-          setPostContent(savedPostContent);
-          setSuccessMessage('Your session was restored. You can now submit your post.');
-          
-          // Clean up all storage locations after retrieving data
-          sessionStorage.removeItem('savedPostTitle');
-          sessionStorage.removeItem('savedPostContent');
-          localStorage.removeItem('savedPostTitle');
-          localStorage.removeItem('savedPostContent');
-        }
       } catch (err: any) {
         console.error('Error fetching profile data:', err);
         setError(err.message || 'Failed to load profile data');
@@ -107,7 +67,9 @@ const ProfilePage: React.FC = () => {
     };
 
     fetchProfileData();
-  }, [isAuthenticated, navigate, user, location]);  const handleCreatePost = async (e: React.FormEvent) => {
+  }, [isAuthenticated, navigate, user]);
+
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!postTitle.trim() || !postContent.trim()) {
@@ -119,12 +81,6 @@ const ProfilePage: React.FC = () => {
     setPostError(null);
     
     try {
-      // First, check if the token is available and valid
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw { response: { status: 401 }, message: 'No authentication token found' };
-      }
-      
       // Make the API call using the axios interceptor for auth
       await api.post('/posts', {
         title: postTitle,
@@ -151,32 +107,6 @@ const ProfilePage: React.FC = () => {
     } catch (err: any) {
       console.error('Error creating post:', err);
       
-      // Handle authentication errors specifically - check both custom property and status code
-      if (err.isAuthError || err.response?.status === 401) {
-        // Set a friendly error message
-        setPostError('Your session has expired. Please wait while we save your post content.');
-        
-        // Store post data in both sessionStorage and localStorage for redundancy
-        sessionStorage.setItem('savedPostTitle', postTitle);
-        sessionStorage.setItem('savedPostContent', postContent);
-        localStorage.setItem('savedPostTitle', postTitle);
-        localStorage.setItem('savedPostContent', postContent);
-        
-        // Auto-save message
-        setSuccessMessage('Your post content has been saved. Please log in again to continue.');
-        
-        // Show confirmation dialog and handle navigation
-        const confirmLogin = window.confirm('Your session has expired. Would you like to log in again to submit your post?');
-        if (confirmLogin) {
-          // Navigate to login with state that indicates where to return to
-          navigate('/login', { 
-            state: { from: '/profile', showCreatePost: true } 
-          });
-        }
-        return;
-      }
-      
-      // Handle other types of errors
       setPostError(err.response?.data?.message || 'Failed to create post. Please try again.');
     } finally {
       setSubmitting(false);

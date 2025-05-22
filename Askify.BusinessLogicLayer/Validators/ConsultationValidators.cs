@@ -13,10 +13,8 @@ namespace Askify.BusinessLogicLayer.Validators
                 .MaximumLength(200).WithMessage("Title cannot exceed 200 characters");
 
             RuleFor(x => x.Description)
-                .NotEmpty().WithMessage("Description is required");
-
-            RuleFor(x => x.ExpertId)
-                .Null().WithMessage("ExpertId should be null for new consultations.");
+                .NotEmpty().WithMessage("Description is required");            // Allow ExpertId to be null or non-null depending on whether it's an open request
+            // This is handled in the service layer
 
             // Add other validation rules as needed
         }

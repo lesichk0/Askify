@@ -8,12 +8,12 @@ import ConsultationsPage from './pages/ConsultationsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ConsultationDetailPage from './pages/ConsultationDetailPage';
-import ProfilePage from './pages/ProfilePage.tsx';
+import ProfilePage from './pages/ProfilePage';
 import CreateConsultationPage from './pages/CreateConsultationPage';
 import AnswerConsultationsPage from './pages/AnswerConsultationsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ConsultationRequestsPage from './pages/ConsultationRequestsPage';
-import ExpertsPage from './pages/ExpertsPage.tsx';
+import ExpertsPage from './pages/ExpertsPage';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -22,6 +22,14 @@ function App() {
   // Check authentication status when app loads
   useEffect(() => {
     dispatch(checkAuthStatus());
+    
+    // Check for auth errors from API interceptor
+    const authError = localStorage.getItem('authError');
+    if (authError === 'true') {
+      console.warn('Authentication error detected from previous request');
+      // Clear the flag after handling it
+      localStorage.removeItem('authError');
+    }
   }, [dispatch]);
 
   return (

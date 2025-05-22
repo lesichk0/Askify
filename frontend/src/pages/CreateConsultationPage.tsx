@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../hooks';
 import api from '../api/api';
 
@@ -14,6 +14,11 @@ const CreateConsultationPage: React.FC = () => {
   
   const { user, isAuthenticated } = useAppSelector(state => state.auth);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get expertId from query string if present
+  const searchParams = new URLSearchParams(location.search);
+  const expertId = searchParams.get('expertId');
   
   // Redirect if not authenticated or if user is not a User
   useEffect(() => {
@@ -33,13 +38,19 @@ const CreateConsultationPage: React.FC = () => {
     setError(null);
     
     try {
-      const consultationData = {
+      const consultationData: any = {
         title,
         description,
         isFree,
         isPublicable,
         isOpenRequest
       };
+      
+      if (expertId) {
+        consultationData.expertId = expertId;
+        // If expert is chosen, force isOpenRequest to false
+        consultationData.isOpenRequest = false;
+      }
       
       const response = await api.post('/consultations', consultationData);
       console.log('Consultation created:', response.data);

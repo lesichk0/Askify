@@ -128,8 +128,7 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
-    
-    options.TokenValidationParameters = new TokenValidationParameters
+      options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = false,               // Temporarily disable for troubleshooting
         ValidateAudience = false,             // Temporarily disable for troubleshooting
@@ -139,7 +138,7 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings.Audience,
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(jwtSettings.Key)),
-        ClockSkew = TimeSpan.FromMinutes(5),  // Allow 5 minutes clock difference
+        ClockSkew = TimeSpan.FromHours(1),    // Increased to 1 hour to handle time differences
         RequireSignedTokens = true,
         RequireExpirationTime = true,
         ValidateActor = false,

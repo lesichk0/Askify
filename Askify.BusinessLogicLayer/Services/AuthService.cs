@@ -166,13 +166,15 @@ namespace Askify.BusinessLogicLayer.Services
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
+              // Get the token expiry from options
+            var tokenExpiryDays = int.TryParse(_configuration["Jwt:TokenExpiryDays"], out int days) ? days : 365;
             
-            // Create and return the token
+            // Create and return the token with longer expiration
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(30), // 30-day expiration
+                expires: DateTime.UtcNow.AddDays(tokenExpiryDays), // Use the configured value with 365 days as fallback
                 signingCredentials: creds
             );
             
@@ -200,15 +202,17 @@ namespace Askify.BusinessLogicLayer.Services
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
-            
-            // Add at least one await operation
+              // Add at least one await operation
             await Task.Yield();
+            
+            // Get the token expiry from options
+            var tokenExpiryDays = int.TryParse(_configuration["Jwt:TokenExpiryDays"], out int days) ? days : 365;
             
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(30),
+                expires: DateTime.UtcNow.AddDays(tokenExpiryDays), // Use the configured expiry time
                 signingCredentials: creds
             );
             

@@ -13,13 +13,48 @@ const LoginPage: React.FC = () => {
   
   // Get the redirect path from location state or default to home
   const from = (location.state as any)?.from || '/';
-
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await dispatch(login({ email, password }));
     if (login.fulfilled.match(result)) {
-      // Redirect to the page they were trying to access or home
-      navigate(from, { replace: true });
+      // Clear any auth error flags
+      localStorage.removeItem('authError');
+      localStorage.removeItem('lastAuthErrorTime');
+      
+      // Check multiple storage locations for saved post data
+      let savedPostTitle = sessionStorage.getItem('savedPostTitle');
+      let savedPostContent = sessionStorage.getItem('savedPostContent');
+      
+      // If not found in sessionStorage, check localStorage
+      if (!savedPostTitle || !savedPostContent) {
+        savedPostTitle = localStorage.getItem('savedPostTitle');
+        savedPostContent = localStorage.getItem('savedPostContent');
+      }
+      
+      // Get the showCreatePost flag from location state
+      const showCreatePostFromState = (location.state as any)?.showCreatePost || false;
+      
+      if ((savedPostTitle && savedPostContent) || showCreatePostFromState) {
+        // Clean up storage regardless of which one had the data
+        sessionStorage.removeItem('savedPostTitle');
+        sessionStorage.removeItem('savedPostContent');
+        localStorage.removeItem('savedPostTitle');
+        localStorage.removeItem('savedPostContent');
+        
+        // If there was saved post data, redirect to profile page with the data
+        navigate('/profile', { 
+          replace: true,
+          state: { 
+            showCreatePost: true,
+            savedPostTitle,
+            savedPostContent,
+            message: 'Your session was restored. You can now submit your post.'
+          }
+        });
+      } else {
+        // Otherwise, redirect to the page they were trying to access or home
+        navigate(from, { replace: true });
+      }
     }
   };
 
