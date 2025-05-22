@@ -50,11 +50,15 @@ export const fetchConsultations = createAsyncThunk(
 // Async thunk for fetching consultation by ID
 export const getConsultationById = createAsyncThunk(
   'consultations/getById',
-  async (id: number, { rejectWithValue }) => {
+  async (consultationId: number, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/Consultations`);
+      // Add more detailed logging
+      console.log(`Making API request to get consultation #${consultationId}`);
+      const response = await api.get(`/consultations/${consultationId}`);
+      console.log('API response:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('Error fetching consultation:', error);
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch consultation');
     }
   }
@@ -120,7 +124,10 @@ const consultationsSlice = createSlice({
       })
       .addCase(getConsultationById.fulfilled, (state, action) => {
         state.loading = false;
+        state.error = null;
+        // Ensure we're setting the full consultation data
         state.currentConsultation = action.payload;
+        console.log('Updated current consultation in store:', action.payload);
       })
       .addCase(getConsultationById.rejected, (state, action) => {
         state.loading = false;

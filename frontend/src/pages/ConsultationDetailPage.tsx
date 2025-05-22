@@ -52,115 +52,32 @@ const ConsultationDetailPage: React.FC = () => {
   // Cast currentConsultation to our extended type
   const typedConsultation = currentConsultation as ExtendedConsultation;
   
+  // Move ALL useEffect hooks to the top, before any conditional returns
   useEffect(() => {
     if (id) {
+      console.log('Fetching consultation with ID:', id);
       dispatch(getConsultationById(parseInt(id)));
     }
   }, [dispatch, id]);
+
+  // Add the debugging useEffect BEFORE any conditional returns
+  useEffect(() => {
+    if (currentConsultation) {
+      console.log('Loaded consultation data:', currentConsultation);
+    }
+  }, [currentConsultation]);
   
-  if (loading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-      </div>
-    );
-  }
+  // Helper functions for formatting - move up before conditional returns
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Unknown date';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
   
-  // Update the error display section
-  if (error) {
-    const is403 = error.toString().includes("permission") || error.toString().includes("Access Denied");
-    
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center text-amber-600 hover:text-amber-800"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back
-          </button>
-        </div>
-        
-        <div className="bg-red-50 border-l-4 border-red-500 p-8 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold text-red-700 mb-4">{is403 ? "Access Denied" : "Error"}</h2>
-          <p className="text-gray-700 mb-6">{error}</p>
-          
-          {is403 && (
-            <div className="mt-4 space-y-4">
-              <p className="text-gray-700">This could be due to one of the following reasons:</p>
-              <ul className="list-disc pl-5 text-gray-700 space-y-2">
-                <li>You are not logged in</li>
-                <li>This consultation is private</li>
-                <li>Only completed consultations with public visibility can be viewed</li>
-                <li>You need to be the owner or expert for this consultation</li>
-              </ul>
-              
-              <div className="flex flex-wrap gap-4 mt-6">
-                {!isAuthenticated && (
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded transition"
-                  >
-                    Log In
-                  </button>
-                )}
-                <button 
-                  onClick={() => navigate('/consultations')}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition"
-                >
-                  Browse Public Consultations
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-  
-  // Before rendering the main content, add proper null checks and default values
-  if (!currentConsultation) {
-    return (
-      <div className="text-center py-10">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Consultation Not Found</h2>
-        <p className="text-gray-600 mb-6">The consultation you're looking for doesn't exist or has been removed.</p>
-        <button 
-          onClick={() => navigate('/consultations')}
-          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded transition"
-        >
-          Back to Consultations
-        </button>
-      </div>
-    );
-  }
-  
-  // Safely destructure properties with default values to avoid undefined errors
-  const { 
-    title = 'Untitled Consultation', 
-    description = 'No description available', 
-    status = 'pending', 
-    expertName = '',
-    createdAt = new Date().toISOString(), 
-    completedAt = undefined,
-    // Add other properties you need with defaults
-  } = currentConsultation || {};
-  
-  // Format dates safely
-  const formattedCreatedAt = createdAt ? new Date(createdAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }) : 'Unknown date';
-  
-  const formattedCompletedAt = completedAt ? new Date(completedAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }) : null;
-  
+  // All handler functions must be declared before any conditional returns
   const handleAcceptConsultation = async () => {
     if (!id) return;
     
@@ -269,6 +186,98 @@ const ConsultationDetailPage: React.FC = () => {
     }
   };
   
+  // NOW we can use conditional returns
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    const is403 = error.toString().includes("permission") || error.toString().includes("Access Denied");
+    
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center text-amber-600 hover:text-amber-800"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Back
+          </button>
+        </div>
+        
+        <div className="bg-red-50 border-l-4 border-red-500 p-8 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-red-700 mb-4">{is403 ? "Access Denied" : "Error"}</h2>
+          <p className="text-gray-700 mb-6">{error}</p>
+          
+          {is403 && (
+            <div className="mt-4 space-y-4">
+              <p className="text-gray-700">This could be due to one of the following reasons:</p>
+              <ul className="list-disc pl-5 text-gray-700 space-y-2">
+                <li>You are not logged in</li>
+                <li>This consultation is private</li>
+                <li>Only completed consultations with public visibility can be viewed</li>
+                <li>You need to be the owner or expert for this consultation</li>
+              </ul>
+              
+              <div className="flex flex-wrap gap-4 mt-6">
+                {!isAuthenticated && (
+                  <button 
+                    onClick={() => navigate('/login')}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded transition"
+                  >
+                    Log In
+                  </button>
+                )}
+                <button 
+                  onClick={() => navigate('/consultations')}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition"
+                >
+                  Browse Public Consultations
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
+  if (!currentConsultation) {
+    return (
+      <div className="text-center py-10">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Consultation Not Found</h2>
+        <p className="text-gray-600 mb-6">The consultation you're looking for doesn't exist or has been removed.</p>
+        <button 
+          onClick={() => navigate('/consultations')}
+          className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded transition"
+        >
+          Back to Consultations
+        </button>
+      </div>
+    );
+  }
+  
+  // Extract data from consultation - AFTER all hooks and conditions
+  const { 
+    title = 'Untitled Consultation', 
+    description = 'No description available', 
+    status = 'pending', 
+    expertName = '',
+    createdAt,
+    completedAt
+  } = currentConsultation;
+  
+  // Format dates using the helper function
+  const formattedCreatedAt = formatDate(createdAt);
+  const formattedCompletedAt = completedAt ? formatDate(completedAt) : null;
+  
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
@@ -286,7 +295,8 @@ const ConsultationDetailPage: React.FC = () => {
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
-            <h1 className="text-3xl font-bold text-gray-800">{title}</h1>
+            {/* Use fallbacks inline rather than in destructuring */}
+            <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
             <span className={`px-4 py-1 rounded-full text-sm font-medium ${
               status === 'completed' ? 'bg-green-100 text-green-800' :
               status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -301,7 +311,7 @@ const ConsultationDetailPage: React.FC = () => {
           </div>
           
           <div className="mb-8">
-            <p className="text-gray-700 whitespace-pre-line">{description}</p>
+            <p className="text-gray-700 whitespace-pre-line">{description || 'No description available'}</p>
           </div>
           
           <div className="flex items-center mb-6">

@@ -11,12 +11,10 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token - This ensures ALL requests include the token automatically
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Make sure we use the correct format "Bearer TOKEN"
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -24,7 +22,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add response interceptor for error handling
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
