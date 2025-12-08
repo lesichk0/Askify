@@ -5,9 +5,6 @@ using System.Linq;
 
 namespace Askify.BusinessLogicLayer.Services
 {
-    /// <summary>
-    /// ML.NET based text classification service for categorizing consultation questions
-    /// </summary>
     public class CategoryClassificationService : ICategoryClassificationService
     {
         private readonly MLContext _mlContext;
@@ -15,7 +12,6 @@ namespace Askify.BusinessLogicLayer.Services
         private PredictionEngine<QuestionInput, CategoryPrediction>? _predictionEngine;
         private readonly object _lock = new object();
 
-        // Define categories for consultation questions
         private static readonly string[] Categories = new[]
         {
             "Technology",
@@ -39,7 +35,6 @@ namespace Askify.BusinessLogicLayer.Services
             "Other"
         };
 
-        // Training data - keyword patterns for each category
         private static readonly Dictionary<string, string[]> CategoryKeywords = new()
         {
             ["Technology"] = new[] { 
