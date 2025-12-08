@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { fetchConsultations, getConsultationsByUserId, fetchOpenConsultationRequests } from '../features/consultations/consultationsSlice';
@@ -17,6 +17,7 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
   const dispatch = useAppDispatch();
   const { consultations, loading, error } = useAppSelector(state => state.consultations);
   const { user, isAuthenticated } = useAppSelector(state => state.auth);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
   useEffect(() => {
     const fetchAppropriateConsultations = async () => {
@@ -93,6 +94,25 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
     // Sort by createdAt descending (newest first)
     return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [consultations, showMine, expertView, user]);
+
+  // Apply category filter
+  const categoryFilteredConsultations = React.useMemo(() => {
+    if (selectedCategory === 'All') {
+      return filteredConsultations;
+    }
+    return filteredConsultations.filter(c => c.category === selectedCategory);
+  }, [filteredConsultations, selectedCategory]);
+
+  // Get unique categories from current consultations for the filter
+  const availableCategories = React.useMemo(() => {
+    const categories = new Set<string>();
+    filteredConsultations.forEach(c => {
+      if (c.category) {
+        categories.add(c.category);
+      }
+    });
+    return ['All', ...Array.from(categories).sort()];
+  }, [filteredConsultations]);
   
   // Format date helper function
   const formatDate = (dateString: string) => {
@@ -117,6 +137,31 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
             : 'Public Consultations'
         }
       </h1>
+
+      {/* Category Filter */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Category:</label>
+        <div className="flex flex-wrap gap-2">
+          {availableCategories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                selectedCategory === category
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category}
+              {category !== 'All' && (
+                <span className="ml-1 text-xs opacity-75">
+                  ({filteredConsultations.filter(c => c.category === category).length})
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
       
       {/* Add Create button for users */}
       {user?.role === 'User' && showMine && (
@@ -133,18 +178,29 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
         </div>
       )}
       
-      {filteredConsultations.length === 0 ? (
+      {categoryFilteredConsultations.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
           <p className="text-lg text-gray-600">
-            {showMine 
-              ? 'You have no consultations yet.' 
-              : expertView 
-                ? 'No open consultation requests available.' 
-                : 'No public consultations available at the moment.'
+            {selectedCategory !== 'All' 
+              ? `No consultations found in "${selectedCategory}" category.`
+              : showMine 
+                ? 'You have no consultations yet.' 
+                : expertView 
+                  ? 'No open consultation requests available.' 
+                  : 'No public consultations available at the moment.'
             }
           </p>
           
-          {user?.role === 'User' && showMine && (
+          {selectedCategory !== 'All' && (
+            <button 
+              onClick={() => setSelectedCategory('All')}
+              className="mt-4 text-amber-600 hover:text-amber-800 font-medium"
+            >
+              Clear filter
+            </button>
+          )}
+          
+          {user?.role === 'User' && showMine && selectedCategory === 'All' && (
             <Link 
               to="/consultations/new"
               className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded inline-block"
@@ -155,7 +211,7 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredConsultations.map((consultation) => (
+            {categoryFilteredConsultations.map((consultation) => (
                 <ConsultationCard 
                     key={consultation.id}
                     id={consultation.id}

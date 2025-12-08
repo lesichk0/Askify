@@ -50,6 +50,33 @@ interface ToastState {
   type: 'success' | 'error' | 'info';
 }
 
+// Category color mapping for consistent styling
+const categoryColors: Record<string, string> = {
+  'Technology': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Health & Medicine': 'bg-red-100 text-red-800 border-red-200',
+  'Legal': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Finance & Business': 'bg-green-100 text-green-800 border-green-200',
+  'Education': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  'Career & Employment': 'bg-orange-100 text-orange-800 border-orange-200',
+  'Relationships': 'bg-pink-100 text-pink-800 border-pink-200',
+  'Home & Living': 'bg-teal-100 text-teal-800 border-teal-200',
+  'Travel': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  'Arts & Entertainment': 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+  'Food & Cooking': 'bg-amber-100 text-amber-800 border-amber-200',
+  'Sports & Fitness': 'bg-lime-100 text-lime-800 border-lime-200',
+  'Pets & Animals': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'Science & Research': 'bg-violet-100 text-violet-800 border-violet-200',
+  'Automotive': 'bg-slate-100 text-slate-800 border-slate-200',
+  'Fashion & Beauty': 'bg-rose-100 text-rose-800 border-rose-200',
+  'Parenting & Family': 'bg-sky-100 text-sky-800 border-sky-200',
+  'Environment & Sustainability': 'bg-green-100 text-green-700 border-green-200',
+  'Other': 'bg-gray-100 text-gray-800 border-gray-200',
+};
+
+const getCategoryColor = (category: string): string => {
+  return categoryColors[category] || categoryColors['Other'];
+};
+
 const ConsultationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
@@ -163,9 +190,22 @@ const ConsultationDetailPage: React.FC = () => {
 
     const setupWebSocket = async () => {
       try {
+        // Check if token is available
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('No auth token available for WebSocket connection');
+          return;
+        }
+        
         // Initialize WebSocket connection
         if (!webSocketService.isConsultationConnected()) {
           await webSocketService.initializeConsultationConnection();
+        }
+
+        // Wait a moment for connection to be fully established
+        if (!webSocketService.isConsultationConnected()) {
+          console.warn('WebSocket connection not established after initialization');
+          return;
         }
 
         // Join the consultation room
@@ -590,7 +630,7 @@ const ConsultationDetailPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
               {category && (
-                <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                <span className={`inline-flex items-center mt-2 px-3 py-1 rounded-full text-sm font-medium border ${getCategoryColor(category)}`}>
                   <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
                   </svg>

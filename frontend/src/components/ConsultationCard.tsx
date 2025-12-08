@@ -24,6 +24,15 @@ const categoryColors: Record<string, string> = {
   'Relationships': 'bg-pink-100 text-pink-800 border-pink-200',
   'Home & Living': 'bg-teal-100 text-teal-800 border-teal-200',
   'Travel': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  'Arts & Entertainment': 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+  'Food & Cooking': 'bg-amber-100 text-amber-800 border-amber-200',
+  'Sports & Fitness': 'bg-lime-100 text-lime-800 border-lime-200',
+  'Pets & Animals': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  'Science & Research': 'bg-violet-100 text-violet-800 border-violet-200',
+  'Automotive': 'bg-slate-100 text-slate-800 border-slate-200',
+  'Fashion & Beauty': 'bg-rose-100 text-rose-800 border-rose-200',
+  'Parenting & Family': 'bg-sky-100 text-sky-800 border-sky-200',
+  'Environment & Sustainability': 'bg-green-100 text-green-700 border-green-200',
   'Other': 'bg-gray-100 text-gray-800 border-gray-200',
 };
 

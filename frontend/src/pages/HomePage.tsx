@@ -79,7 +79,7 @@ const HomePage: React.FC = () => {
               <p className="text-lg text-red-600">Error loading consultations: {error}</p>
             </div>
           ) : featuredConsultations.length > 0 ? (
-            featuredConsultations.map((consultation) => (
+            featuredConsultations.slice(0, 8).map((consultation) => (
               <ConsultationCard
                 key={consultation.id}
                 id={consultation.id}
@@ -88,6 +88,7 @@ const HomePage: React.FC = () => {
                 description={consultation.description || 'No description available.'}
                 status={consultation.status as any}
                 date={formatDate(consultation.createdAt)}
+                category={consultation.category}
               />
             ))
           ) : (

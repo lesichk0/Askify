@@ -160,7 +160,15 @@ const ExpertsPage: React.FC = () => {
                     {expert.fullName.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-800">{expert.fullName}</h3>
+                    <h3 
+                      className="text-xl font-bold text-gray-800 hover:text-amber-600 cursor-pointer transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/users/${expert.id}`);
+                      }}
+                    >
+                      {expert.fullName}
+                    </h3>
                     {expert.specialization && (
                       <p className="text-amber-600">{expert.specialization}</p>
                     )}

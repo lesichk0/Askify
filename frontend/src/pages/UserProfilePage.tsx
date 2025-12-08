@@ -26,6 +26,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   coverImageUrl?: string;
+  isLikedByCurrentUser?: boolean;
 }
 
 const UserProfilePage: React.FC = () => {
@@ -77,6 +78,33 @@ const UserProfilePage: React.FC = () => {
   const truncateContent = (content: string, maxLength: number = 150) => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
+  };
+
+  const handleLike = async (postId: number, isLiked: boolean) => {
+    if (!currentUser) return;
+    
+    try {
+      if (isLiked) {
+        await api.delete(`/posts/${postId}/like`);
+      } else {
+        await api.post(`/posts/${postId}/like`);
+      }
+      
+      // Update local state
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                isLikedByCurrentUser: !isLiked,
+                likesCount: isLiked ? (post.likesCount || 1) - 1 : (post.likesCount || 0) + 1
+              }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
   };
 
   if (loading) {
@@ -192,12 +220,22 @@ const UserProfilePage: React.FC = () => {
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>{formatDate(post.createdAt)}</span>
-                    <span className="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleLike(post.id, post.isLikedByCurrentUser || false);
+                      }}
+                      className={`flex items-center hover:text-red-500 transition-colors ${
+                        post.isLikedByCurrentUser ? 'text-red-500' : ''
+                      }`}
+                      disabled={!currentUser}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill={post.isLikedByCurrentUser ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
                       {post.likesCount || 0}
-                    </span>
+                    </button>
                     <span className="flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
