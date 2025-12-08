@@ -18,5 +18,6 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<bool> SetPriceAsync(int id, string expertId, decimal price);
         Task<bool> AcceptPriceAsync(int id, string userId);
         Task<bool> RejectPriceAsync(int id, string userId);
+        Task<bool> UpdateCategoryAsync(int id, string userId, string newCategory);
     }
 }

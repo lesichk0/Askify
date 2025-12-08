@@ -333,5 +333,23 @@ namespace Askify.BusinessLogicLayer.Services
             
             return result;
         }
+
+        public async Task<bool> UpdateCategoryAsync(int id, string userId, string newCategory)
+        {
+            var consultation = await _unitOfWork.Consultations.GetByIdAsync(id);
+            if (consultation == null) return false;
+            
+            // Only the consultation owner can update the category
+            if (consultation.UserId != userId) return false;
+            
+            // Validate the category is in our list
+            var validCategories = _classificationService.GetAllCategories();
+            if (!validCategories.Contains(newCategory)) return false;
+            
+            consultation.Category = newCategory;
+            _unitOfWork.Consultations.Update(consultation);
+            
+            return await _unitOfWork.CompleteAsync();
+        }
     }
 }

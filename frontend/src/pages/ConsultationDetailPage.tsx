@@ -100,6 +100,10 @@ const ConsultationDetailPage: React.FC = () => {
   const [ratingComment, setRatingComment] = useState('');
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [hasRated, setHasRated] = useState(false);
+  const [showCategoryEdit, setShowCategoryEdit] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -127,6 +131,19 @@ const ConsultationDetailPage: React.FC = () => {
       dispatch(getConsultationById(parseInt(id)));
     }
   }, [dispatch, id]);
+
+  // Fetch available categories for category feedback
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/consultations/categories');
+        setAvailableCategories(response.data);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Add the debugging useEffect BEFORE any conditional returns
   useEffect(() => {
@@ -630,12 +647,77 @@ const ConsultationDetailPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
               {category && (
-                <span className={`inline-flex items-center mt-2 px-3 py-1 rounded-full text-sm font-medium border ${getCategoryColor(category)}`}>
-                  <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                  </svg>
-                  {category}
-                </span>
+                <div className="flex items-center mt-2 gap-2">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getCategoryColor(category)}`}>
+                    <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    {category}
+                  </span>
+                  {/* Category feedback button - only for consultation owner */}
+                  {isAuthenticated && user?.id === typedConsultation?.userId && !showCategoryEdit && (
+                    <button
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setShowCategoryEdit(true);
+                      }}
+                      className="text-xs text-gray-500 hover:text-amber-600 flex items-center"
+                      title="Wrong category? Help us improve!"
+                    >
+                      <svg className="w-3.5 h-3.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      Fix category
+                    </button>
+                  )}
+                </div>
+              )}
+              {/* Category edit dropdown */}
+              {showCategoryEdit && (
+                <div className="mt-2 flex items-center gap-2">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    disabled={categorySubmitting}
+                  >
+                    {availableCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      if (selectedCategory === category) {
+                        setShowCategoryEdit(false);
+                        return;
+                      }
+                      setCategorySubmitting(true);
+                      try {
+                        await api.put(`/consultations/${id}/category`, { category: selectedCategory });
+                        showToast('Category updated! Thanks for your feedback.', 'success');
+                        // Refresh the consultation data
+                        dispatch(getConsultationById(parseInt(id!)));
+                        setShowCategoryEdit(false);
+                      } catch (error) {
+                        console.error('Error updating category:', error);
+                        showToast('Failed to update category', 'error');
+                      } finally {
+                        setCategorySubmitting(false);
+                      }
+                    }}
+                    disabled={categorySubmitting}
+                    className="text-xs bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded disabled:opacity-50"
+                  >
+                    {categorySubmitting ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setShowCategoryEdit(false)}
+                    className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
+                    disabled={categorySubmitting}
+                  >
+                    Cancel
+                  </button>
+                </div>
               )}
             </div>
             <span className={`px-4 py-1 rounded-full text-sm font-medium ${

@@ -164,7 +164,7 @@ const ExpertsPage: React.FC = () => {
                       className="text-xl font-bold text-gray-800 hover:text-amber-600 cursor-pointer transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/users/${expert.id}`);
+                        navigate(`/user/${expert.id}`);
                       }}
                     >
                       {expert.fullName}

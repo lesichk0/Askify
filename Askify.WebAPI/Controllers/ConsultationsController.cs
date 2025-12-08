@@ -476,5 +476,36 @@ namespace Askify.WebAPI.Controllers
                 return StatusCode(500, new { message = "An error occurred while rejecting the price" });
             }
         }
+
+        [HttpPut("{id}/category")]
+        [Authorize]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] UpdateCategoryRequest request)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                if (string.IsNullOrEmpty(request.Category))
+                    return BadRequest(new { message = "Category is required." });
+
+                var result = await _consultationService.UpdateCategoryAsync(id, userId, request.Category);
+                if (!result)
+                    return BadRequest(new { message = "Failed to update category. Make sure you are the consultation owner and the category is valid." });
+
+                return Ok(new { message = "Category updated successfully.", category = request.Category });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating category for consultation {Id}", id);
+                return StatusCode(500, new { message = "An error occurred while updating the category" });
+            }
+        }
+    }
+
+    public class UpdateCategoryRequest
+    {
+        public string Category { get; set; } = string.Empty;
     }
 }

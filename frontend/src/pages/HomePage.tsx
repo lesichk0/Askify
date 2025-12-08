@@ -24,6 +24,12 @@ const HomePage: React.FC = () => {
     }
     return true;
   });
+
+  // Get latest consultations with categories (sorted by newest first)
+  const latestWithCategories = [...consultations]
+    .filter(c => c.category && c.category !== 'Other' && c.isPublicable)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
   
   // Format date helper function
   const formatDate = (dateString: string) => {
