@@ -19,6 +19,8 @@ export class WebSocketService {
   // Callbacks for events
   private onMessageReceived: ((message: ConsultationMessage) => void) | null = null;
   private onConsultationAccepted: ((data: any) => void) | null = null;
+  private onConsultationCompleted: ((data: any) => void) | null = null;
+  private onConsultationUpdated: ((data: any) => void) | null = null;
   private onNewNotification: ((notification: any) => void) | null = null;
   private onConnected: ((data: any) => void) | null = null;
   private onError: ((message: string) => void) | null = null;
@@ -57,6 +59,34 @@ export class WebSocketService {
 
       this.consultationConnection.on('ConsultationDeclined', (data: any) => {
         console.log('Consultation declined via WebSocket:', data);
+      });
+
+      this.consultationConnection.on('ConsultationCompleted', (data: any) => {
+        console.log('Consultation completed via WebSocket:', data);
+        if (this.onConsultationCompleted) {
+          this.onConsultationCompleted(data);
+        }
+      });
+
+      this.consultationConnection.on('PaymentAccepted', (data: any) => {
+        console.log('Payment accepted via WebSocket:', data);
+        if (this.onConsultationUpdated) {
+          this.onConsultationUpdated(data);
+        }
+      });
+
+      this.consultationConnection.on('PriceUpdated', (data: any) => {
+        console.log('Price updated via WebSocket:', data);
+        if (this.onConsultationUpdated) {
+          this.onConsultationUpdated(data);
+        }
+      });
+
+      this.consultationConnection.on('PriceRejected', (data: any) => {
+        console.log('Price rejected via WebSocket:', data);
+        if (this.onConsultationUpdated) {
+          this.onConsultationUpdated(data);
+        }
       });
 
       this.consultationConnection.onreconnected((connectionId: string | undefined) => {
@@ -170,6 +200,14 @@ export class WebSocketService {
 
   onConsultationAcceptedCallback(callback: (data: any) => void): void {
     this.onConsultationAccepted = callback;
+  }
+
+  onConsultationCompletedCallback(callback: (data: any) => void): void {
+    this.onConsultationCompleted = callback;
+  }
+
+  onConsultationUpdatedCallback(callback: (data: any) => void): void {
+    this.onConsultationUpdated = callback;
   }
 
   onNewNotificationCallback(callback: (notification: any) => void): void {

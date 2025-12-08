@@ -11,6 +11,7 @@ const CreateConsultationPage: React.FC = () => {
   const [isOpenRequest, setIsOpenRequest] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedExpert, setSelectedExpert] = useState<{id: string; fullName: string; email: string} | null>(null);
   
   const { user, isAuthenticated } = useAppSelector(state => state.auth);
   const navigate = useNavigate();
@@ -19,6 +20,22 @@ const CreateConsultationPage: React.FC = () => {
   // Get expertId from query string if present
   const searchParams = new URLSearchParams(location.search);
   const expertId = searchParams.get('expertId');
+  
+  // Fetch expert info if expertId is provided
+  useEffect(() => {
+    const fetchExpertInfo = async () => {
+      if (expertId) {
+        try {
+          const response = await api.get(`/users/${expertId}`);
+          setSelectedExpert(response.data);
+          setIsOpenRequest(false); // If expert is pre-selected, not an open request
+        } catch (err) {
+          console.error('Error fetching expert info:', err);
+        }
+      }
+    };
+    fetchExpertInfo();
+  }, [expertId]);
   
   // Redirect if not authenticated or if user is not a User
   useEffect(() => {
@@ -87,6 +104,24 @@ const CreateConsultationPage: React.FC = () => {
       {error && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700">
           <p>{error}</p>
+        </div>
+      )}
+
+      {/* Show selected expert if any */}
+      {selectedExpert && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-amber-800 mb-2">Requesting consultation with:</h3>
+          <div className="flex items-center">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mr-3">
+              <span className="text-amber-700 font-bold text-lg">
+                {selectedExpert.fullName?.charAt(0) || 'E'}
+              </span>
+            </div>
+            <div>
+              <p className="font-medium text-gray-800">{selectedExpert.fullName}</p>
+              <p className="text-sm text-gray-500">{selectedExpert.email}</p>
+            </div>
+          </div>
         </div>
       )}
       

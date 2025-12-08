@@ -5,6 +5,7 @@ namespace Askify.BusinessLogicLayer.Interfaces
     public interface IPostService
     {
         Task<PostDto?> GetByIdAsync(int id);
+        Task<PostDto?> GetByIdWithUserContextAsync(int id, string? userId);
         Task<IEnumerable<PostDto>> GetAllAsync();
         Task<IEnumerable<PostDto>> GetByUserIdAsync(string userId);
         Task<int> CreatePostAsync(string userId, CreatePostDto postDto);
@@ -16,5 +17,9 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<bool> UnsavePostAsync(int postId, string userId);
         Task<IEnumerable<PostDto>> GetSavedPostsAsync(string userId);
         Task<int> GetUserPostsCountAsync(string userId);
+        Task<int> GetLikesCountAsync(int postId);
+        Task<int> GetCommentsCountAsync(int postId);
+        Task<bool> IsLikedByUserAsync(int postId, string userId);
+        Task<bool> IsSavedByUserAsync(int postId, string userId);
     }
 }

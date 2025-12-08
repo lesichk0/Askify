@@ -9,5 +9,6 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<bool> MarkAsReadAsync(int notificationId);
         Task<bool> MarkAllAsReadAsync(string userId);
         Task<int> CreateNotificationAsync(string userId, string type, int entityId, string message);
+        Task<bool> DeleteAsync(int notificationId);
     }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { fetchConsultations, getConsultationsByUserId, fetchOpenConsultationRequests } from '../features/consultations/consultationsSlice';
 import ConsultationCard from '../components/ConsultationCard';
@@ -49,22 +50,26 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
       return [];
     }
     
+    let result: typeof consultations = [];
+    
     if (showMine && user) {
       if (user.role === 'User') {
         // Users see consultations they created
-        return consultations.filter(c => c.userId === user.id);
+        result = consultations.filter(c => c.userId === user.id);
       } else if (user.role === 'Expert') {
         // Experts see consultations assigned to them
-        return consultations.filter(c => c.expertId === user.id);
+        result = consultations.filter(c => c.expertId === user.id);
       }
-      return [];
     } else if (expertView) {
       // Available open requests
-      return consultations.filter(c => c.isOpenRequest && c.status?.toLowerCase() === 'pending');
+      result = consultations.filter(c => c.isOpenRequest && c.status?.toLowerCase() === 'pending');
     } else {
       // Public view - only publicable consultations
-      return consultations.filter(c => c.isPublicable === true);
+      result = consultations.filter(c => c.isPublicable === true);
     }
+    
+    // Sort by createdAt descending (newest first)
+    return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [consultations, showMine, expertView, user]);
   
   // Format date helper function
@@ -94,22 +99,17 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
       {/* Add Create button for users */}
       {user?.role === 'User' && showMine && (
         <div className="mb-6">
-          <a 
-            href="/consultations/new"
+          <Link 
+            to="/consultations/new"
             className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded inline-flex items-center"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
             Request New Consultation
-          </a>
+          </Link>
         </div>
       )}
-      
-      {/* Add a debug count */}
-      <div className="mb-4 p-2 bg-blue-50 text-blue-800 rounded">
-        Found {filteredConsultations.length} consultations
-      </div>
       
       {filteredConsultations.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
@@ -123,20 +123,17 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
           </p>
           
           {user?.role === 'User' && showMine && (
-            <a 
-              href="/consultations/new"
+            <Link 
+              to="/consultations/new"
               className="mt-4 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded inline-block"
             >
               Request Your First Consultation
-            </a>
+            </Link>
           )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Use index in map to confirm iteration is happening */}
-            {filteredConsultations.map((consultation, index) => {
-              console.log(`Rendering consultation ${index + 1}/${filteredConsultations.length}:`, consultation.id);
-              return (
+            {filteredConsultations.map((consultation) => (
                 <ConsultationCard 
                     key={consultation.id}
                     id={consultation.id}
@@ -146,8 +143,7 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
                     status={consultation.status as any}
                     date={formatDate(consultation.createdAt)}
                 />
-              );
-            })}
+            ))}
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../hooks';
 import { logout } from '../features/auth/authSlice';
 import { fetchNotifications, markAllNotificationsAsRead, markNotificationAsRead } from '../features/notifications/notificationsSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -33,6 +33,7 @@ const Header: React.FC = () => {
   
   const handleLogout = () => {
     dispatch(logout());
+    navigate('/');
   };
 
   const handleMouseEnter = () => {
@@ -94,44 +95,46 @@ const Header: React.FC = () => {
     <header className="bg-amber-700 text-white shadow-md">
       <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
         <div className="flex items-center mb-4 md:mb-0">
-          <a href="/" className="text-2xl font-bold">Askify</a>
+          <Link to="/" className="text-2xl font-bold">Askify</Link>
           <nav className="ml-8 hidden md:block">
             <ul className="flex space-x-6">
-              <li><a href="/" className="hover:text-yellow-200 transition">Home</a></li>
-              <li><a href="/consultations" className="hover:text-yellow-200 transition">Consultations</a></li>
+              <li><Link to="/" className="hover:text-yellow-200 transition">Home</Link></li>
+              <li><Link to="/consultations" className="hover:text-yellow-200 transition">Consultations</Link></li>
+              <li><Link to="/blog" className="hover:text-yellow-200 transition">Blog</Link></li>
               
               {/* Expert-specific navigation items */}
               {isAuthenticated && user?.role === 'Expert' && (
                 <>
                   <li>
-                    <a href="/consultation-requests" className="hover:text-yellow-200 transition">
+                    <Link to="/consultation-requests" className="hover:text-yellow-200 transition">
                       Open Requests
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="/answer-consultations" className="hover:text-yellow-200 transition">
-                      Answer Consultations
-                    </a>
-                  </li>
-                  <li>
-                    <a href="/my-consultations" className="hover:text-yellow-200 transition">
+                    <Link to="/my-consultations" className="hover:text-yellow-200 transition">
                       My Consultations
-                    </a>
+                    </Link>
                   </li>
                 </>
               )}
               
               {/* User-specific navigation items */}
               {isAuthenticated && user?.role === 'User' && (
-                <li>
-                  <a href="/consultations/new" className="hover:text-yellow-200 transition">
-                    Request Consultation
-                  </a>
-                </li>
+                <>
+                  <li>
+                    <Link to="/consultations/new" className="hover:text-yellow-200 transition">
+                      Request Consultation
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/my-consultations" className="hover:text-yellow-200 transition">
+                      My Consultations
+                    </Link>
+                  </li>
+                </>
               )}
               
-              <li><a href="/experts" className="hover:text-yellow-200 transition">Find Experts</a></li>
-              <li><a href="/questions" className="hover:text-yellow-200 transition">Q&A</a></li>
+              <li><Link to="/experts" className="hover:text-yellow-200 transition">Find Experts</Link></li>
             </ul>
           </nav>
         </div>
@@ -173,9 +176,9 @@ const Header: React.FC = () => {
                         >
                           Mark all as read
                         </button>
-                        <a href="/notifications" className="text-xs text-amber-600 hover:text-amber-800">
+                        <Link to="/notifications" className="text-xs text-amber-600 hover:text-amber-800">
                           View All
-                        </a>
+                        </Link>
                       </div>
                     </div>
                     
@@ -231,70 +234,62 @@ const Header: React.FC = () => {
                     dropdownOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                 >
-                  <a 
-                    href="/profile" 
+                  <Link 
+                    to="/profile" 
                     className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
                   >
                     Profile
-                  </a>
-                  <a 
-                    href="/my-consultations" 
+                  </Link>
+                  <Link 
+                    to="/my-consultations" 
                     className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
                   >
                     {user?.role === 'Expert' ? 'My Assigned Consultations' : 'My Consultations'}
-                  </a>
+                  </Link>
                   
                   {user?.role === 'User' && (
-                    <a 
-                      href="/consultations/new" 
+                    <Link 
+                      to="/consultations/new" 
                       className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
                     >
                       Request Consultation
-                    </a>
+                    </Link>
                   )}
                   
                   {user?.role === 'Expert' && (
-                    <>
-                      <a 
-                        href="/consultation-requests" 
-                        className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
-                      >
-                        Available Requests
-                      </a>
-                      <a 
-                        href="/answer-consultations" 
-                        className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
-                      >
-                        Answer Consultations
-                      </a>
-                    </>
+                    <Link 
+                      to="/consultation-requests" 
+                      className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
+                    >
+                      Available Requests
+                    </Link>
                   )}
                   
-                  <a 
-                    href="/notifications" 
+                  <Link 
+                    to="/notifications" 
                     className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
                   >
                     Notifications
-                  </a>
+                  </Link>
                   
-                  <a 
+                  <button 
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-amber-100"
+                    className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-amber-100 cursor-pointer"
                   >
                     Logout
-                  </a>
+                  </button>
                 </div>
               </div>
             </>
           ) : (
             <> 
-              <a href="/login" className="hover:text-yellow-200 transition">Login</a>
-              <a 
-                href="/register" 
+              <Link to="/login" className="hover:text-yellow-200 transition">Login</Link>
+              <Link 
+                to="/register" 
                 className="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded-md transition"
               >
                 Register
-              </a>
+              </Link>
             </>
           )}
         </div>
@@ -303,19 +298,16 @@ const Header: React.FC = () => {
       {/* Mobile Navigation */}
       <div className="md:hidden border-t border-amber-800 py-2">
         <ul className="flex justify-around">
-          <li><a href="/" className="hover:text-yellow-200 transition">Home</a></li>
+          <li><Link to="/" className="hover:text-yellow-200 transition">Home</Link></li>
           
           {isAuthenticated && user?.role === 'Expert' ? (
-            <>
-              <li><a href="/consultation-requests" className="hover:text-yellow-200 transition">Requests</a></li>
-              <li><a href="/answer-consultations" className="hover:text-yellow-200 transition">Answer</a></li>
-            </>
+            <li><Link to="/consultation-requests" className="hover:text-yellow-200 transition">Requests</Link></li>
           ) : (
-            <li><a href="/consultations" className="hover:text-yellow-200 transition">Consult</a></li>
+            <li><Link to="/consultations" className="hover:text-yellow-200 transition">Consult</Link></li>
           )}
           
-          <li><a href="/experts" className="hover:text-yellow-200 transition">Experts</a></li>
-          <li><a href="/notifications" className="hover:text-yellow-200 transition">Alerts</a></li>
+          <li><Link to="/experts" className="hover:text-yellow-200 transition">Experts</Link></li>
+          <li><Link to="/notifications" className="hover:text-yellow-200 transition">Alerts</Link></li>
         </ul>
       </div>
     </header>

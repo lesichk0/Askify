@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
-import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../features/notifications/notificationsSlice';
+import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification } from '../features/notifications/notificationsSlice';
 
 const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,8 +25,21 @@ const NotificationsPage: React.FC = () => {
     
     // Navigate to related item if applicable
     if (notification.relatedItemType && notification.relatedItemId) {
-      navigate(`/${notification.relatedItemType.toLowerCase()}s/${notification.relatedItemId}`);
+      const type = notification.relatedItemType.toLowerCase();
+      // Handle different types correctly
+      if (type === 'consultation') {
+        navigate(`/consultations/${notification.relatedItemId}`);
+      } else if (type === 'post') {
+        navigate(`/blog/${notification.relatedItemId}`);
+      } else {
+        navigate(`/${type}s/${notification.relatedItemId}`);
+      }
     }
+  };
+
+  const handleDeleteNotification = (e: React.MouseEvent, notificationId: number) => {
+    e.stopPropagation(); // Prevent triggering the notification click
+    dispatch(deleteNotification(notificationId));
   };
   
   const formatDate = (dateString: string) => {
@@ -98,6 +111,15 @@ const NotificationsPage: React.FC = () => {
                   <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                   <p className="text-xs text-gray-400 mt-2">{formatDate(notification.createdAt)}</p>
                 </div>
+                <button
+                  onClick={(e) => handleDeleteNotification(e, notification.id)}
+                  className="ml-2 p-1 text-gray-400 hover:text-red-500 transition"
+                  title="Delete notification"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             </div>
           ))}

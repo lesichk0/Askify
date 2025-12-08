@@ -192,5 +192,47 @@ namespace Askify.BusinessLogicLayer.Services
             var posts = await _unitOfWork.Posts.FindAsync(p => p.AuthorId == userId);
             return posts.Count();
         }
+
+        public async Task<int> GetLikesCountAsync(int postId)
+        {
+            var likes = await _unitOfWork.PostLikes.FindAsync(pl => pl.PostId == postId);
+            return likes.Count();
+        }
+
+        public async Task<int> GetCommentsCountAsync(int postId)
+        {
+            var comments = await _unitOfWork.Comments.FindAsync(c => c.PostId == postId);
+            return comments.Count();
+        }
+
+        public async Task<bool> IsLikedByUserAsync(int postId, string userId)
+        {
+            var likes = await _unitOfWork.PostLikes.FindAsync(pl => pl.PostId == postId && pl.UserId == userId);
+            return likes.Any();
+        }
+
+        public async Task<bool> IsSavedByUserAsync(int postId, string userId)
+        {
+            var saved = await _unitOfWork.SavedPosts.FindAsync(sp => sp.PostId == postId && sp.UserId == userId);
+            return saved.Any();
+        }
+
+        public async Task<PostDto?> GetByIdWithUserContextAsync(int id, string? userId)
+        {
+            var post = await _unitOfWork.Posts.GetByIdAsync(id);
+            if (post == null) return null;
+
+            var postDto = _mapper.Map<PostDto>(post);
+            postDto.LikesCount = await GetLikesCountAsync(id);
+            postDto.CommentsCount = await GetCommentsCountAsync(id);
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                postDto.IsLikedByCurrentUser = await IsLikedByUserAsync(id, userId);
+                postDto.IsSavedByCurrentUser = await IsSavedByUserAsync(id, userId);
+            }
+
+            return postDto;
+        }
     }
 }

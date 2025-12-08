@@ -62,5 +62,22 @@ namespace Askify.WebAPI.Controllers
             if (!result) return BadRequest();
             return Ok();
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+            
+            var notification = await _notificationService.GetByIdAsync(id);
+            if (notification == null) return NotFound();
+            
+            // Only allow deleting own notifications
+            if (notification.UserId != userId) return Forbid();
+            
+            var result = await _notificationService.DeleteAsync(id);
+            if (!result) return BadRequest();
+            return Ok();
+        }
     }
 }

@@ -66,6 +66,19 @@ export const markAllNotificationsAsRead = createAsyncThunk(
   }
 );
 
+// Delete notification
+export const deleteNotification = createAsyncThunk(
+  'notifications/delete',
+  async (notificationId: number, { rejectWithValue }) => {
+    try {
+      await api.delete(`/notifications/${notificationId}`);
+      return notificationId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete notification');
+    }
+  }
+);
+
 const notificationsSlice = createSlice({
   name: 'notifications',
   initialState,
@@ -86,7 +99,10 @@ const notificationsSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
-        state.notifications = action.payload;
+        // Sort notifications by createdAt descending (newest first)
+        state.notifications = action.payload.sort((a: Notification, b: Notification) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
         state.unreadCount = action.payload.filter((n: Notification) => !n.isRead).length;
         state.loading = false;
       })
@@ -110,6 +126,15 @@ const notificationsSlice = createSlice({
           notification.isRead = true;
         });
         state.unreadCount = 0;
+      })
+      
+      // Delete notification
+      .addCase(deleteNotification.fulfilled, (state, action) => {
+        const notification = state.notifications.find(n => n.id === action.payload);
+        if (notification && !notification.isRead) {
+          state.unreadCount -= 1;
+        }
+        state.notifications = state.notifications.filter(n => n.id !== action.payload);
       });
   }
 });

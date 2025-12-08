@@ -10,10 +10,12 @@ import RegisterPage from './pages/RegisterPage';
 import ConsultationDetailPage from './pages/ConsultationDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import CreateConsultationPage from './pages/CreateConsultationPage';
-import AnswerConsultationsPage from './pages/AnswerConsultationsPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ConsultationRequestsPage from './pages/ConsultationRequestsPage';
 import ExpertsPage from './pages/ExpertsPage';
+import BlogPostPage from './pages/BlogPostPage';
+import PostsPage from './pages/PostsPage';
+import UserProfilePage from './pages/UserProfilePage';
 
 function App() {
   const dispatch = useAppDispatch();
@@ -108,18 +110,33 @@ function App() {
             <Navigate to="/login" replace />
           )
         } />
-        <Route path="/answer-consultations" element={
-          isAuthenticated && user?.role === 'Expert' ? (
-            <MainLayout>
-              <AnswerConsultationsPage />
-            </MainLayout>
-          ) : (
-            <Navigate to="/" replace />
-          )
-        } />
         <Route path="/experts" element={
           <MainLayout>
             <ExpertsPage />
+          </MainLayout>
+        } />
+        
+        {/* User profile route */}
+        <Route path="/user/:userId" element={
+          <MainLayout>
+            <UserProfilePage />
+          </MainLayout>
+        } />
+
+        {/* Blog post route */}
+        <Route path="/blog" element={
+          <MainLayout>
+            <PostsPage />
+          </MainLayout>
+        } />
+        <Route path="/blog/:id" element={
+          <MainLayout>
+            <BlogPostPage />
+          </MainLayout>
+        } />
+        <Route path="/posts/:id" element={
+          <MainLayout>
+            <BlogPostPage />
           </MainLayout>
         } />
 

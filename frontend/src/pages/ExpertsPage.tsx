@@ -20,6 +20,13 @@ const ExpertsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
+  const [showExpertModal, setShowExpertModal] = useState(false);
+
+  const openExpertModal = (expert: Expert) => {
+    setSelectedExpert(expert);
+    setShowExpertModal(true);
+  };
 
   useEffect(() => {
     const fetchExperts = async () => {
@@ -70,25 +77,7 @@ const ExpertsPage: React.FC = () => {
           setExperts(expertUsers);
         } else {
           console.warn('No experts found through any method');
-          // Just to test, create mock experts if none were found
-          if (import.meta.env.DEV) { // Use Vite's import.meta.env.DEV instead of process.env
-            setExperts([
-              {
-                id: '1',
-                fullName: 'Test Expert 1',
-                email: 'expert1@example.com',
-                bio: 'This is a test expert profile for development',
-                role: 'Expert'
-              },
-              {
-                id: '2',
-                fullName: 'Test Expert 2',
-                email: 'expert2@example.com',
-                bio: 'Another test expert profile',
-                role: 'Expert'
-              }
-            ]);
-          }
+          setExperts([]);
         }
       } catch (err) {
         console.error('Error fetching experts:', err);
@@ -144,11 +133,6 @@ const ExpertsPage: React.FC = () => {
         </div>
       )}
       
-      {/* Debug Info */}
-      <div className="mb-4 p-3 bg-blue-50 text-blue-800 rounded">
-        Found {experts.length} experts | Filtered: {filteredExperts.length}
-      </div>
-      
       {/* Experts List */}
       {filteredExperts.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-lg">
@@ -168,7 +152,7 @@ const ExpertsPage: React.FC = () => {
             <div 
               key={expert.id} 
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(`/experts/${expert.id}`)}
+              onClick={() => openExpertModal(expert)}
             >
               <div className="p-6">
                 <div className="flex items-center mb-4">
@@ -228,6 +212,91 @@ const ExpertsPage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Expert Detail Modal */}
+      {showExpertModal && selectedExpert && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center">
+                  <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-2xl font-bold text-amber-700 mr-4">
+                    {selectedExpert.fullName.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-800">{selectedExpert.fullName}</h2>
+                    {selectedExpert.specialization && (
+                      <p className="text-amber-600 text-lg">{selectedExpert.specialization}</p>
+                    )}
+                    <p className="text-gray-500">{selectedExpert.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowExpertModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {selectedExpert.rating !== undefined && (
+                <div className="flex items-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  <span className="text-lg font-semibold text-gray-700">{selectedExpert.rating.toFixed(1)}</span>
+                  {selectedExpert.reviewsCount !== undefined && (
+                    <span className="text-gray-500 ml-2">({selectedExpert.reviewsCount} reviews)</span>
+                  )}
+                </div>
+              )}
+
+              {selectedExpert.bio && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">About</h3>
+                  <p className="text-gray-600">{selectedExpert.bio}</p>
+                </div>
+              )}
+
+              {selectedExpert.expertise && selectedExpert.expertise.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Expertise</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedExpert.expertise.map((skill, index) => (
+                      <span 
+                        key={index}
+                        className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowExpertModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExpertModal(false);
+                    navigate(`/consultations/new?expertId=${selectedExpert.id}`);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded"
+                >
+                  Request Consultation
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

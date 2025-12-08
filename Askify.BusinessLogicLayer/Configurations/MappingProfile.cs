@@ -10,7 +10,8 @@ namespace Askify.BusinessLogicLayer.Configurations
         {
             // User
             CreateMap<User, UserDto>();
-            CreateMap<UpdateUserDto, User>();
+            CreateMap<UpdateUserDto, User>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             // Post
             CreateMap<Post, PostDto>()

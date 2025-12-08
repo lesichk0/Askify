@@ -7,9 +7,10 @@ namespace Askify.BusinessLogicLayer.Validators
     {
         public UpdateUserDtoValidator()
         {
+            // Only validate FullName if it's provided (allow partial updates)
             RuleFor(x => x.FullName)
-                .NotEmpty().WithMessage("Full name is required.")
-                .MaximumLength(100).WithMessage("Full name cannot exceed 100 characters.");
+                .MaximumLength(100).WithMessage("Full name cannot exceed 100 characters.")
+                .When(x => !string.IsNullOrEmpty(x.FullName));
 
             RuleFor(x => x.Bio)
                 .MaximumLength(500).WithMessage("Bio cannot exceed 500 characters.");

@@ -15,5 +15,8 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<bool> CancelConsultationAsync(int id);
         Task<int> GetUserConsultationsCountAsync(string userId);
         Task<IEnumerable<ConsultationDto>> GetConsultationsByUserIdAsync(string userId);
+        Task<bool> SetPriceAsync(int id, string expertId, decimal price);
+        Task<bool> AcceptPriceAsync(int id, string userId);
+        Task<bool> RejectPriceAsync(int id, string userId);
     }
 }

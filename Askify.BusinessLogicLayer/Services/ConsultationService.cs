@@ -66,7 +66,15 @@ namespace Askify.BusinessLogicLayer.Services
         {
             var consultation = _mapper.Map<Consultation>(consultationDto);
             consultation.UserId = userId;
-            consultation.IsFree = !await HasUsedFreeConsultationAsync(userId);
+            // Respect user's choice for IsFree, but if they want free, check if they've used their free consultation
+            if (consultationDto.IsFree && !await HasUsedFreeConsultationAsync(userId))
+            {
+                consultation.IsFree = true;
+            }
+            else
+            {
+                consultation.IsFree = consultationDto.IsFree;
+            }
             consultation.Status = "Pending";
             consultation.CreatedAt = DateTime.UtcNow;
               // Only set ExpertId to null if it's an open request or if no ExpertId was provided
@@ -143,9 +151,13 @@ namespace Askify.BusinessLogicLayer.Services
         }        public async Task<bool> CompleteConsultationAsync(int id)
         {
             var consultation = await _unitOfWork.Consultations.GetByIdAsync(id);
-            if (consultation == null || consultation.Status?.ToLower() != "accepted") return false;
+            // Allow completion for both "accepted" and "inprogress" statuses
+            if (consultation == null) return false;
+            var status = consultation.Status?.ToLower();
+            if (status != "accepted" && status != "inprogress") return false;
 
             consultation.Status = "Completed";
+            consultation.CompletedAt = DateTime.UtcNow;
             _unitOfWork.Consultations.Update(consultation);
 
             // If this was a free consultation, mark the user as having used it
@@ -207,6 +219,111 @@ namespace Askify.BusinessLogicLayer.Services
                 c => c.UserId == userId || c.ExpertId == userId);
                 
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
+        }
+
+        public async Task<bool> SetPriceAsync(int id, string expertId, decimal price)
+        {
+            var consultation = await _unitOfWork.Consultations.GetByIdAsync(id);
+            if (consultation == null) return false;
+            
+            // Only the assigned expert can set a price
+            if (consultation.ExpertId != expertId) return false;
+            
+            // Can only set price on accepted, non-free consultations
+            if (consultation.IsFree) return false;
+            if (consultation.Status?.ToLower() != "accepted") return false;
+            
+            consultation.Price = price;
+            consultation.Status = "AwaitingPayment";
+            _unitOfWork.Consultations.Update(consultation);
+            
+            var result = await _unitOfWork.CompleteAsync();
+            
+            if (result)
+            {
+                var expert = await _unitOfWork.Users.GetByIdAsync(expertId);
+                string expertName = expert?.FullName ?? "The expert";
+                
+                await _notificationService.CreateNotificationAsync(
+                    consultation.UserId,
+                    "PriceSet",
+                    consultation.Id,
+                    $"{expertName} has set a price of {price:C} for your consultation");
+            }
+            
+            return result;
+        }
+
+        public async Task<bool> AcceptPriceAsync(int id, string userId)
+        {
+            var consultation = await _unitOfWork.Consultations.GetByIdAsync(id);
+            if (consultation == null) return false;
+            
+            // Only the consultation owner can accept the price
+            if (consultation.UserId != userId) return false;
+            
+            // Can only accept price when awaiting payment
+            if (consultation.Status?.ToLower() != "awaitingpayment") return false;
+            
+            consultation.IsPaid = true;
+            consultation.Status = "InProgress";
+            _unitOfWork.Consultations.Update(consultation);
+            
+            var result = await _unitOfWork.CompleteAsync();
+            
+            if (result && !string.IsNullOrEmpty(consultation.ExpertId))
+            {
+                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                string userName = user?.FullName ?? "The client";
+                
+                await _notificationService.CreateNotificationAsync(
+                    consultation.ExpertId,
+                    "PaymentReceived",
+                    consultation.Id,
+                    $"{userName} has paid for the consultation");
+            }
+            
+            return result;
+        }
+
+        public async Task<bool> RejectPriceAsync(int id, string userId)
+        {
+            var consultation = await _unitOfWork.Consultations.GetByIdAsync(id);
+            if (consultation == null) return false;
+            
+            // Only the consultation owner can reject the price
+            if (consultation.UserId != userId) return false;
+            
+            // Can only reject price when awaiting payment
+            if (consultation.Status?.ToLower() != "awaitingpayment") return false;
+            
+            // Store the expert ID before removing
+            string? previousExpertId = consultation.ExpertId;
+            
+            // Reset the consultation to pending state without an expert
+            consultation.ExpertId = null;
+            consultation.Price = null;
+            consultation.IsPaid = false;
+            consultation.Status = "Pending";
+            consultation.IsOpenRequest = true; // Make it open for other experts
+            _unitOfWork.Consultations.Update(consultation);
+            
+            var result = await _unitOfWork.CompleteAsync();
+            
+            // Notify the expert that their price was rejected
+            if (result && !string.IsNullOrEmpty(previousExpertId))
+            {
+                var user = await _unitOfWork.Users.GetByIdAsync(userId);
+                string userName = user?.FullName ?? "The client";
+                
+                await _notificationService.CreateNotificationAsync(
+                    previousExpertId,
+                    "PriceRejected",
+                    consultation.Id,
+                    $"{userName} has rejected your price for the consultation");
+            }
+            
+            return result;
         }
     }
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -14,27 +15,25 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold text-yellow-400 mb-4">Quick Links</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/" className="hover:text-yellow-300 transition">Home</a></li>
-              <li><a href="/about" className="hover:text-yellow-300 transition">About Us</a></li>
-              <li><a href="/consultations" className="hover:text-yellow-300 transition">Consultations</a></li>
-              <li><a href="/experts" className="hover:text-yellow-300 transition">Experts</a></li>
+              <li><Link to="/" className="hover:text-yellow-300 transition">Home</Link></li>
+              <li><Link to="/consultations" className="hover:text-yellow-300 transition">Consultations</Link></li>
+              <li><Link to="/experts" className="hover:text-yellow-300 transition">Experts</Link></li>
             </ul>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-yellow-400 mb-4">Resources</h3>
+            <h3 className="text-lg font-semibold text-yellow-400 mb-4">Get Started</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/faq" className="hover:text-yellow-300 transition">FAQ</a></li>
-              <li><a href="/blog" className="hover:text-yellow-300 transition">Blog</a></li>
-              <li><a href="/terms" className="hover:text-yellow-300 transition">Terms of Service</a></li>
-              <li><a href="/privacy" className="hover:text-yellow-300 transition">Privacy Policy</a></li>
+              <li><Link to="/register" className="hover:text-yellow-300 transition">Create Account</Link></li>
+              <li><Link to="/login" className="hover:text-yellow-300 transition">Sign In</Link></li>
+              <li><Link to="/consultations/new" className="hover:text-yellow-300 transition">Request Consultation</Link></li>
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold text-yellow-400 mb-4">Contact</h3>
             <ul className="space-y-2 text-sm">
-              <li>Email: info@askify.com</li>
-              <li>Phone: +1 (555) 123-4567</li>
-              <li>Address: 123 Knowledge St, Wisdom City</li>
+              <li>Email: olesiaproskurnyak@gmail.com</li>
+              <li>Phone: +38 (050) 770 87 60</li>
+              <li>Address: Ukraine, Chernivtsi</li>
             </ul>
           </div>
         </div>

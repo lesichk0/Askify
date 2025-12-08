@@ -27,7 +27,8 @@ namespace Askify.WebAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<PostDto>> GetById(int id)
         {
-            var post = await _postService.GetByIdAsync(id);
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var post = await _postService.GetByIdWithUserContextAsync(id, userId);
             if (post == null) return NotFound();
             return Ok(post);
         }

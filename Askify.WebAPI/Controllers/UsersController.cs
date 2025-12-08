@@ -110,8 +110,17 @@ namespace Askify.WebAPI.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var isAdmin = User.IsInRole("Admin");
             
+            _logger.LogInformation($"Update user request: URL id={id}, Token userId={userId}, isAdmin={isAdmin}");
+            
+            if (string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning("User ID from token is null or empty");
+                return Unauthorized();
+            }
+            
             if (userId != id && !isAdmin)
             {
+                _logger.LogWarning($"Forbidden: userId ({userId}) != id ({id}) and not admin");
                 return Forbid();
             }
             
@@ -169,8 +178,7 @@ namespace Askify.WebAPI.Controllers
                 {
                     Id = user.Id,
                     FullName = user.FullName,
-                    // Use UserName property if it exists on UserDto, otherwise use an alternative
-                    Email = user.Id, // Fallback to Id which we know exists
+                    Email = user.Email ?? string.Empty,
                     Bio = user.Bio ?? string.Empty,
                     JoinDate = DateTime.UtcNow, // Use current time since CreatedAt doesn't exist
                     Role = User.IsInRole("Expert") ? "Expert" : "User",

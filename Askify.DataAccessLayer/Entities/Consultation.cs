@@ -9,6 +9,7 @@
         public string Description { get; set; } = null!; // Added description field
         public bool IsFree { get; set; }
         public bool IsPaid { get; set; }
+        public decimal? Price { get; set; } // Expert's requested price
         public bool IsOpenRequest { get; set; }
         public bool IsPublicable { get; set; }
         public DateTime CreatedAt { get; set; }

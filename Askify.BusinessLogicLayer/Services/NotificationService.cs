@@ -67,5 +67,14 @@ namespace Askify.BusinessLogicLayer.Services
 
             return notification.Id;
         }
+
+        public async Task<bool> DeleteAsync(int notificationId)
+        {
+            var notification = await _unitOfWork.Notifications.GetByIdAsync(notificationId);
+            if (notification == null) return false;
+
+            _unitOfWork.Notifications.Remove(notification);
+            return await _unitOfWork.CompleteAsync();
+        }
     }
 }

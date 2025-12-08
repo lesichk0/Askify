@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import ConsultationCard from '../components/ConsultationCard';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { fetchConsultations } from '../features/consultations/consultationsSlice';
@@ -37,18 +38,18 @@ const HomePage: React.FC = () => {
             Connect with industry experts and get the answers you need to succeed.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a 
-              href="/consultations/new" 
+            <Link 
+              to="/consultations/new" 
               className="bg-white text-amber-700 hover:bg-gray-100 px-8 py-3 rounded-md font-semibold text-lg transition"
             >
               Book a Consultation
-            </a>
-            <a 
-              href="/experts" 
+            </Link>
+            <Link 
+              to="/experts" 
               className="bg-amber-800 hover:bg-amber-900 px-8 py-3 rounded-md font-semibold text-lg transition"
             >
               Find an Expert
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -56,9 +57,9 @@ const HomePage: React.FC = () => {
       <section className="mb-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold text-gray-800">Featured Consultations</h2>
-          <a href="/consultations" className="text-amber-600 hover:text-amber-700 font-medium">
+          <Link to="/consultations" className="text-amber-600 hover:text-amber-700 font-medium">
             View All →
-          </a>
+          </Link>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

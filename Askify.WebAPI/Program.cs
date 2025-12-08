@@ -276,6 +276,12 @@ app.Lifetime.ApplicationStarted.Register(async () =>
                           WHERE TABLE_NAME = 'Consultations' AND COLUMN_NAME = 'Description')
             BEGIN
                 ALTER TABLE Consultations ADD Description nvarchar(max) NOT NULL DEFAULT 'No description provided.'
+            END
+
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS 
+                          WHERE TABLE_NAME = 'Consultations' AND COLUMN_NAME = 'Price')
+            BEGIN
+                ALTER TABLE Consultations ADD Price decimal(18,2) NULL
             END");
         
         logger.LogInformation("Database schema check completed");

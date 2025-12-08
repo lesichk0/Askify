@@ -42,6 +42,86 @@ const ProfilePage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editPostTitle, setEditPostTitle] = useState('');
+  const [editPostContent, setEditPostContent] = useState('');
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioText, setBioText] = useState('');
+  const [bioSubmitting, setBioSubmitting] = useState(false);
+
+  const handleSaveBio = async () => {
+    if (!bioText.trim()) return;
+    
+    setBioSubmitting(true);
+    try {
+      // Use profile.id which comes from the API and is the authoritative ID
+      const userId = profile?.id || user?.id;
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+      await api.put(`/users/${userId}`, { bio: bioText });
+      setProfile(prev => prev ? { ...prev, bio: bioText } : null);
+      setIsEditingBio(false);
+      setSuccessMessage('Bio updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Error updating bio:', err);
+      setPostError('Failed to update bio. Please try again.');
+    } finally {
+      setBioSubmitting(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: number) => {
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      await api.delete(`/posts/${postId}`);
+      setPosts(posts.filter(p => p.id !== postId));
+      setSuccessMessage('Post deleted successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setPostError('Failed to delete post. Please try again.');
+    }
+  };
+
+  const openEditPostModal = (post: Post) => {
+    setEditingPost(post);
+    setEditPostTitle(post.title);
+    setEditPostContent(post.content);
+    setShowEditModal(true);
+  };
+
+  const handleEditPost = async () => {
+    if (!editingPost || !editPostTitle.trim() || !editPostContent.trim()) return;
+    
+    try {
+      await api.put(`/posts/${editingPost.id}`, {
+        title: editPostTitle,
+        content: editPostContent
+      });
+      
+      // Update local state
+      setPosts(posts.map(p => 
+        p.id === editingPost.id 
+          ? { ...p, title: editPostTitle, content: editPostContent }
+          : p
+      ));
+      
+      setShowEditModal(false);
+      setEditingPost(null);
+      setSuccessMessage('Post updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error('Error updating post:', err);
+      setPostError('Failed to update post. Please try again.');
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated || !user) {
       navigate('/login');
@@ -50,8 +130,8 @@ const ProfilePage: React.FC = () => {
       const fetchProfileData = async () => {
       setLoading(true);
       try {
-        // Fetch profile data
-        const profileResponse = await api.get(`/users/${user.id}`);
+        // Fetch profile data from the profile endpoint which includes postsCount
+        const profileResponse = await api.get('/users/profile');
         setProfile(profileResponse.data);
         
         // Fetch posts
@@ -131,12 +211,15 @@ const ProfilePage: React.FC = () => {
         content: postContent
       });
       
-      // After successful creation, refresh the posts list
+      // After successful creation, refresh the posts list and profile
       if (user?.id) {
         const postsResponse = await api.get(`/posts/user/${user.id}`);
         if (Array.isArray(postsResponse.data)) {
           setPosts(postsResponse.data);
         }
+        // Refresh profile to update postsCount
+        const profileResponse = await api.get('/users/profile');
+        setProfile(profileResponse.data);
       }
       
       setPostTitle('');
@@ -227,7 +310,55 @@ const ProfilePage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-800 mb-1">{profile?.fullName}</h1>
             <p className="text-gray-500 mb-2">{profile?.email}</p>
             <p className="text-gray-500 mb-3">Joined: {profile?.joinDate ? new Date(profile.joinDate).toLocaleDateString() : 'Unknown'}</p>
-            <p className="text-gray-700">{profile?.bio || 'No bio available'}</p>
+            
+            {/* Bio Section with Edit */}
+            <div className="mb-4">
+              {isEditingBio ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={bioText}
+                    onChange={(e) => setBioText(e.target.value)}
+                    placeholder="Write something about yourself..."
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-amber-500 focus:border-amber-500"
+                    rows={3}
+                  />
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={handleSaveBio}
+                      disabled={bioSubmitting}
+                      className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white px-4 py-1 rounded text-sm"
+                    >
+                      {bioSubmitting ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingBio(false);
+                        setBioText(profile?.bio || '');
+                      }}
+                      className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1 rounded text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <p className="text-gray-700 flex-grow">{profile?.bio || 'No bio available'}</p>
+                  <button
+                    onClick={() => {
+                      setBioText(profile?.bio || '');
+                      setIsEditingBio(true);
+                    }}
+                    className="text-amber-600 hover:text-amber-700 text-sm flex-shrink-0"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Edit
+                  </button>
+                </div>
+              )}
+            </div>
             
             <div className="mt-4 flex gap-4">
               <div className="text-center">
@@ -331,7 +462,29 @@ const ProfilePage: React.FC = () => {
           {posts.map(post => (
             <div key={post.id} className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{post.title}</h3>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-xl font-bold text-gray-800">{post.title}</h3>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => openEditPostModal(post)}
+                      className="text-blue-600 hover:text-blue-800 p-1"
+                      title="Edit post"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      className="text-red-600 hover:text-red-800 p-1"
+                      title="Delete post"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
                 <p className="text-gray-500 text-sm mb-4">
                   {new Date(post.createdAt).toLocaleDateString()}
                 </p>
@@ -352,7 +505,7 @@ const ProfilePage: React.FC = () => {
                     </span>
                   </div>
                   <button
-                    onClick={() => navigate(`/posts/${post.id}`)}
+                    onClick={() => navigate(`/blog/${post.id}`)}
                     className="text-amber-600 hover:text-amber-800"
                   >
                     Read more
@@ -361,6 +514,54 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Edit Post Modal */}
+      {showEditModal && editingPost && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h2 className="text-xl font-bold mb-4">Edit Post</h2>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Title</label>
+              <input
+                type="text"
+                value={editPostTitle}
+                onChange={(e) => setEditPostTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Content</label>
+              <textarea
+                value={editPostContent}
+                onChange={(e) => setEditPostContent(e.target.value)}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingPost(null);
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditPost}
+                disabled={!editPostTitle.trim() || !editPostContent.trim()}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

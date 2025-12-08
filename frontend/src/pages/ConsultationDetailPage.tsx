@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../hooks';
 import { getConsultationById } from '../features/consultations/consultationsSlice';
 import api from '../api/api';
 import { webSocketService } from '../services/WebSocketService';
+import Toast from '../components/Toast';
 
 // Define additional interfaces to fix type errors
 interface ExpertOffer {
@@ -36,9 +37,16 @@ interface ExtendedConsultation {
   completedAt?: string;
   isPublicable: boolean;
   isFree: boolean;
+  isPaid: boolean;
+  price?: number;
   isOpenRequest: boolean;
   expertOffer?: ExpertOffer;
   messages?: Message[];
+}
+
+interface ToastState {
+  message: string;
+  type: 'success' | 'error' | 'info';
 }
 
 const ConsultationDetailPage: React.FC = () => {
@@ -50,9 +58,20 @@ const ConsultationDetailPage: React.FC = () => {
   const userRole = user?.role || null;
   const [responseText, setResponseText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [responseError, setResponseError] = useState<string | null>(null);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [followUpQuestion, setFollowUpQuestion] = useState('');
+  const [followUpSubmitting, setFollowUpSubmitting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [priceInput, setPriceInput] = useState('');
+  const [priceSubmitting, setPriceSubmitting] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+  };
   
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
@@ -108,6 +127,23 @@ const ConsultationDetailPage: React.FC = () => {
           console.log('New message received:', message);
           setLocalMessages((prev) => [...prev, message]);
         });
+
+        // Set up consultation completed callback
+        webSocketService.onConsultationCompletedCallback((data) => {
+          console.log('Consultation completed:', data);
+          if (data.consultationId === parseInt(id)) {
+            dispatch(getConsultationById(parseInt(id)));
+            showToast('Consultation has been completed!', 'success');
+          }
+        });
+
+        // Set up consultation updated callback (for price changes, payments, etc.)
+        webSocketService.onConsultationUpdatedCallback((data) => {
+          console.log('Consultation updated:', data);
+          if (data.consultationId === parseInt(id)) {
+            dispatch(getConsultationById(parseInt(id)));
+          }
+        });
       } catch (error) {
         console.error('WebSocket setup failed:', error);
       }
@@ -119,7 +155,7 @@ const ConsultationDetailPage: React.FC = () => {
       // Cleanup on unmount
       webSocketService.leaveConsultation(parseInt(id));
     };
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, dispatch]);
   
   // Helper functions for formatting - move up before conditional returns
   const formatDate = (dateString?: string) => {
@@ -139,28 +175,88 @@ const ConsultationDetailPage: React.FC = () => {
       await api.post(`/consultations/${id}/accept`);
       // Refresh consultation data
       dispatch(getConsultationById(parseInt(id)));
-      // Show success message
-      alert('You have successfully accepted this consultation request.');
+      showToast('You have successfully accepted this consultation request.', 'success');
     } catch (error) {
       console.error('Error accepting consultation:', error);
-      alert('Failed to accept consultation. Please try again.');
+      showToast('Failed to accept consultation. Please try again.', 'error');
     }
   };
   
   const handleDeclineConsultation = async () => {
     if (!id) return;
     
-    if (window.confirm('Are you sure you want to decline this consultation request?')) {
-      try {
-        await api.post(`/consultations/${id}/cancel`);
-        // Refresh consultation data
-        dispatch(getConsultationById(parseInt(id)));
-        // Show success message
-        alert('You have declined this consultation request.');
-      } catch (error) {
-        console.error('Error declining consultation:', error);
-        alert('Failed to decline consultation. Please try again.');
-      }
+    try {
+      await api.post(`/consultations/${id}/cancel`);
+      // Refresh consultation data
+      dispatch(getConsultationById(parseInt(id)));
+      showToast('You have declined this consultation request.', 'success');
+    } catch (error) {
+      console.error('Error declining consultation:', error);
+      showToast('Failed to decline consultation. Please try again.', 'error');
+    }
+  };
+
+  const handleCancelConsultation = async () => {
+    if (!id) return;
+    
+    try {
+      await api.post(`/consultations/${id}/cancel`);
+      showToast('Consultation cancelled successfully.', 'success');
+      navigate('/my-consultations');
+    } catch (error) {
+      console.error('Error cancelling consultation:', error);
+      showToast('Failed to cancel consultation. Please try again.', 'error');
+    }
+  };
+
+  const handleFollowUpQuestion = async () => {
+    if (!id || !followUpQuestion.trim()) return;
+    
+    setFollowUpSubmitting(true);
+    try {
+      // Create a new consultation as a follow-up
+      await api.post('/consultations', {
+        title: `Follow-up: ${currentConsultation?.title}`,
+        description: followUpQuestion,
+        isOpenRequest: false,
+        isFree: true,
+        isPublicable: false,
+        expertId: currentConsultation?.expertId
+      });
+      
+      setFollowUpQuestion('');
+      showToast('Your follow-up question has been submitted!', 'success');
+    } catch (error) {
+      console.error('Error submitting follow-up question:', error);
+      showToast('Failed to submit follow-up question. Please try again.', 'error');
+    } finally {
+      setFollowUpSubmitting(false);
+    }
+  };
+
+  const handleEditConsultation = async () => {
+    if (!id || !editTitle.trim() || !editDescription.trim()) return;
+    
+    try {
+      await api.put(`/consultations/${id}`, {
+        title: editTitle,
+        description: editDescription
+      });
+      
+      setShowEditModal(false);
+      dispatch(getConsultationById(parseInt(id)));
+      showToast('Consultation updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error updating consultation:', error);
+      showToast('Failed to update consultation. Please try again.', 'error');
+    }
+  };
+
+  const openEditModal = () => {
+    if (currentConsultation) {
+      setEditTitle(currentConsultation.title || '');
+      setEditDescription(currentConsultation.description || '');
+      setShowEditModal(true);
     }
   };
   
@@ -171,8 +267,10 @@ const ConsultationDetailPage: React.FC = () => {
       await api.post(`/consultations/${id}/complete`);
       // Refresh consultation data
       dispatch(getConsultationById(parseInt(id)));
+      showToast('Consultation marked as completed!', 'success');
     } catch (error) {
       console.error('Error completing consultation:', error);
+      showToast('Failed to complete consultation.', 'error');
     }
   };
   
@@ -180,7 +278,6 @@ const ConsultationDetailPage: React.FC = () => {
     if (!id || !responseText.trim() || !currentConsultation) return;
     
     setSubmitting(true);
-    setResponseError(null);
     
     try {
       // Determine who the receiver is (the other party in the conversation)
@@ -189,7 +286,7 @@ const ConsultationDetailPage: React.FC = () => {
         : currentConsultation.userId;
       
       if (!receiverId) {
-        setResponseError('Cannot determine recipient. Please try again later.');
+        showToast('Cannot determine recipient. Please try again later.', 'error');
         return;
       }
       
@@ -205,33 +302,7 @@ const ConsultationDetailPage: React.FC = () => {
       // Message will appear via WebSocket real-time update
     } catch (err: any) {
       console.error('Error responding to consultation:', err);
-      setResponseError('Failed to send response. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  
-  const handleExpertResponse = async () => {
-    if (!id || !responseText.trim()) return;
-    
-    setSubmitting(true);
-    setResponseError(null);
-    
-    try {
-      // Send expert response
-      await api.post(`/consultations/${id}/respond`, {
-        message: responseText
-      });
-      
-      // Clear form and refresh data
-      setResponseText('');
-      dispatch(getConsultationById(parseInt(id)));
-      
-      // Show success message
-      alert('Your response has been sent to the user');
-    } catch (err: any) {
-      console.error('Error sending response:', err);
-      setResponseError(err.response?.data?.message || 'Failed to send response');
+      showToast('Failed to send response. Please try again.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -244,9 +315,10 @@ const ConsultationDetailPage: React.FC = () => {
     try {
       await api.post(`/consultations/${id}/accept-expert`);
       dispatch(getConsultationById(parseInt(id)));
+      showToast('Expert accepted successfully!', 'success');
     } catch (err: any) {
       console.error('Error accepting expert:', err);
-      alert('Failed to accept expert offer');
+      showToast('Failed to accept expert offer', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -259,11 +331,67 @@ const ConsultationDetailPage: React.FC = () => {
     try {
       await api.post(`/consultations/${id}/decline-expert`);
       dispatch(getConsultationById(parseInt(id)));
+      showToast('Expert declined', 'info');
     } catch (err: any) {
       console.error('Error declining expert:', err);
-      alert('Failed to decline expert offer');
+      showToast('Failed to decline expert offer', 'error');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSetPrice = async () => {
+    if (!id || !priceInput) return;
+    
+    const price = parseFloat(priceInput);
+    if (isNaN(price) || price <= 0) {
+      showToast('Please enter a valid price greater than 0', 'error');
+      return;
+    }
+    
+    setPriceSubmitting(true);
+    try {
+      await api.post(`/consultations/${id}/set-price`, { price });
+      dispatch(getConsultationById(parseInt(id)));
+      setPriceInput('');
+      showToast(`Price of ₴${price} set successfully!`, 'success');
+    } catch (err: any) {
+      console.error('Error setting price:', err);
+      showToast('Failed to set price. Please try again.', 'error');
+    } finally {
+      setPriceSubmitting(false);
+    }
+  };
+
+  const handleAcceptPrice = async () => {
+    if (!id) return;
+    
+    setPriceSubmitting(true);
+    try {
+      await api.post(`/consultations/${id}/accept-price`);
+      dispatch(getConsultationById(parseInt(id)));
+      showToast('Payment accepted! Consultation is now in progress.', 'success');
+    } catch (err: any) {
+      console.error('Error accepting price:', err);
+      showToast('Failed to process payment. Please try again.', 'error');
+    } finally {
+      setPriceSubmitting(false);
+    }
+  };
+
+  const handleRejectPrice = async () => {
+    if (!id) return;
+    
+    setPriceSubmitting(true);
+    try {
+      await api.post(`/consultations/${id}/reject-price`);
+      dispatch(getConsultationById(parseInt(id)));
+      showToast('Price rejected. The consultation is now open for other experts.', 'info');
+    } catch (err: any) {
+      console.error('Error rejecting price:', err);
+      showToast('Failed to reject price. Please try again.', 'error');
+    } finally {
+      setPriceSubmitting(false);
     }
   };
   
@@ -361,6 +489,14 @@ const ConsultationDetailPage: React.FC = () => {
   
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {toast && (
+        <Toast 
+          type={toast.type} 
+          message={toast.message} 
+          onClose={() => setToast(null)} 
+        />
+      )}
+      
       <div className="mb-6">
         <button 
           onClick={() => navigate(-1)}
@@ -380,13 +516,19 @@ const ConsultationDetailPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
             <span className={`px-4 py-1 rounded-full text-sm font-medium ${
               status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
-              status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-              status === 'accepted' ? 'bg-blue-100 text-blue-800' :
+              status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              status?.toLowerCase() === 'accepted' ? 'bg-blue-100 text-blue-800' :
+              status?.toLowerCase() === 'awaitingpayment' ? 'bg-orange-100 text-orange-800' :
+              status?.toLowerCase() === 'inprogress' ? 'bg-purple-100 text-purple-800' :
               'bg-gray-100 text-gray-800'
             }`}>
               {/* Fix the charAt error by adding null check */}
               {status && typeof status === 'string' 
-                ? status.charAt(0).toUpperCase() + status.slice(1) 
+                ? (status === 'awaitingpayment' || status === 'AwaitingPayment' 
+                    ? 'Awaiting Payment' 
+                    : status === 'inprogress' || status === 'InProgress'
+                      ? 'In Progress'
+                      : status.charAt(0).toUpperCase() + status.slice(1))
                 : 'Unknown'}
             </span>
           </div>
@@ -414,6 +556,28 @@ const ConsultationDetailPage: React.FC = () => {
           
           <div className="border-t border-gray-200 pt-4">
             <p className="text-sm text-gray-500">Created: {formattedCreatedAt}</p>
+            {/* Show consultation type and price */}
+            <div className="flex items-center gap-4 mt-2">
+              {typedConsultation?.isFree ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Free Consultation
+                </span>
+              ) : (
+                <>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    Paid Consultation
+                  </span>
+                  {typedConsultation?.price && (
+                    <span className="text-sm font-medium text-gray-700">
+                      Price: ₴{typedConsultation.price.toFixed(2)}
+                      {typedConsultation?.isPaid && (
+                        <span className="ml-2 text-green-600">✓ Paid</span>
+                      )}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
           </div>
           
           {isAuthenticated && status?.toLowerCase() === 'completed' && (
@@ -422,11 +586,15 @@ const ConsultationDetailPage: React.FC = () => {
               <textarea 
                 className="w-full border border-gray-300 rounded p-3 h-32 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 placeholder="Type your question..."
+                value={followUpQuestion}
+                onChange={(e) => setFollowUpQuestion(e.target.value)}
               ></textarea>
               <button 
-                className="mt-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
+                onClick={handleFollowUpQuestion}
+                disabled={!followUpQuestion.trim() || followUpSubmitting}
+                className="mt-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Question
+                {followUpSubmitting ? 'Submitting...' : 'Submit Question'}
               </button>
             </div>
           )}
@@ -465,62 +633,73 @@ const ConsultationDetailPage: React.FC = () => {
           </div>
         </div>
       )}
-        {/* Expert Action Buttons */}
-      {isAuthenticated && user?.role === 'Expert' && (
+        {/* Expert Action Buttons - Only show for pending consultations */}
+      {isAuthenticated && user?.role === 'Expert' && 
+        currentConsultation?.status?.toLowerCase() === 'pending' && (
         <div className="mt-6 border-t border-gray-200 pt-6">
           <h3 className="text-xl font-semibold mb-4">Expert Actions</h3>
-            {/* Expert Response Form - For pending consultations */}
-          {(currentConsultation?.status?.toLowerCase() === 'pending' || 
-            currentConsultation?.status?.toLowerCase() === 'Pending') && (
-            <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium text-gray-800 mb-2">Send a Response to This Request</h4>
-              <textarea
-                value={responseText}
-                onChange={(e) => setResponseText(e.target.value)}
-                placeholder="Introduce yourself and explain how you can help with this consultation..."
-                className="w-full border border-gray-300 rounded p-3 mb-3"
-                rows={4}
-              ></textarea>
-              
-              {responseError && (
-                <p className="text-red-600 text-sm mb-2">{responseError}</p>
-              )}
-              
-              <button 
-                onClick={handleExpertResponse}
-                disabled={!responseText.trim() || submitting}
-                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50"
-              >
-                {submitting ? 'Sending...' : 'Send Response'}
-              </button>
-            </div>
-          )}            {/* Expert Action buttons */}
-          {(currentConsultation?.status?.toLowerCase() === 'pending' || 
-            currentConsultation?.status?.toLowerCase() === 'Pending') && (
-            <div className="flex space-x-4">
-              <button 
-                onClick={handleAcceptConsultation}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-              >
-                Accept Consultation
-              </button>
-              <button 
-                onClick={handleDeclineConsultation}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-              >
-                Decline Consultation
-              </button>
-            </div>
-          )}            {(currentConsultation?.status?.toLowerCase() === 'accepted' || 
-              currentConsultation?.status?.toLowerCase() === 'Accepted') && 
-              currentConsultation?.expertId === user?.id && (
-              <button 
-                onClick={handleCompleteConsultation}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              >
-                Mark as Completed
-              </button>
+          
+          <div className="flex space-x-4">
+            <button 
+              onClick={handleAcceptConsultation}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+            >
+              Accept Consultation
+            </button>
+            <button 
+              onClick={handleDeclineConsultation}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+            >
+              Decline Consultation
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Expert Complete & Price Setting - Only for accepted consultations */}
+      {isAuthenticated && user?.role === 'Expert' && 
+        (currentConsultation?.status?.toLowerCase() === 'accepted' || 
+         currentConsultation?.status?.toLowerCase() === 'inprogress') && 
+        currentConsultation?.expertId === user?.id && (
+        <div className="mt-6 border-t border-gray-200 pt-6">
+          <h3 className="text-xl font-semibold mb-4">Consultation Management</h3>
+          
+          <div className="space-y-4">
+            <button 
+              onClick={handleCompleteConsultation}
+              disabled={submitting}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded"
+            >
+              {submitting ? 'Completing...' : 'Mark as Completed'}
+            </button>
+            
+            {/* Price Setting for Non-Free Consultations - Only for accepted status */}
+            {!currentConsultation?.isFree && 
+              !(currentConsultation as ExtendedConsultation)?.price && 
+              currentConsultation?.status?.toLowerCase() === 'accepted' && (
+              <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <h4 className="font-medium text-amber-800 mb-2">Set Consultation Price</h4>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600">₴</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={priceInput}
+                    onChange={(e) => setPriceInput(e.target.value)}
+                    placeholder="Enter price"
+                    className="border border-gray-300 rounded px-3 py-2 w-32"
+                      />
+                  <button
+                    onClick={handleSetPrice}
+                    disabled={priceSubmitting || !priceInput}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 text-white px-4 py-2 rounded"
+                  >
+                    {priceSubmitting ? 'Setting...' : 'Set Price'}
+                  </button>
+                </div>
+              </div>
             )}
+          </div>
         </div>
       )}
       
@@ -531,23 +710,82 @@ const ConsultationDetailPage: React.FC = () => {
             {currentConsultation.userId === user?.id && currentConsultation.status?.toLowerCase() === 'pending' && (
             <div className="flex space-x-4">
               <button 
-                onClick={() => navigate(`/consultations/${id}/edit`)}
+                onClick={openEditModal}
                 className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded"
               >
                 Edit Consultation
               </button>
               
               <button 
+                onClick={handleCancelConsultation}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
               >
                 Cancel Consultation
               </button>
             </div>
           )}
+          
+          {/* Price Payment Section for AwaitingPayment status */}
+          {currentConsultation.userId === user?.id && 
+            currentConsultation.status?.toLowerCase() === 'awaitingpayment' && (
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <h4 className="font-medium text-amber-800 mb-2">Payment Required</h4>
+              <p className="text-gray-700 mb-3">
+                The expert has set a price for this consultation:
+                <span className="font-bold text-lg ml-2">₴{(currentConsultation as ExtendedConsultation)?.price?.toFixed(2)}</span>
+              </p>
+              <p className="text-sm text-gray-500 mb-3">
+                If this price doesn't work for you, you can reject it and wait for another expert.
+              </p>
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleAcceptPrice}
+                  disabled={priceSubmitting}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded font-medium"
+                >
+                  {priceSubmitting ? 'Processing...' : 'Pay Now'}
+                </button>
+                <button
+                  onClick={handleRejectPrice}
+                  disabled={priceSubmitting}
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-6 py-2 rounded font-medium"
+                >
+                  {priceSubmitting ? 'Processing...' : 'Reject Price'}
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Show price if set but already paid */}
+          {currentConsultation.userId === user?.id && 
+            !currentConsultation.isFree && 
+            (currentConsultation as ExtendedConsultation)?.isPaid && 
+            (currentConsultation as ExtendedConsultation)?.price && (
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-green-800">
+                <span className="font-medium">✓ Paid:</span> ₴{(currentConsultation as ExtendedConsultation)?.price?.toFixed(2)}
+              </p>
+            </div>
+          )}
+          
+          {/* Client can mark consultation as completed */}
+          {currentConsultation.userId === user?.id && 
+            (currentConsultation.status?.toLowerCase() === 'accepted' || 
+             currentConsultation.status?.toLowerCase() === 'inprogress') && (
+            <div className="mt-4">
+              <button
+                onClick={handleCompleteConsultation}
+                disabled={submitting}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded font-medium"
+              >
+                {submitting ? 'Completing...' : 'Mark as Completed'}
+              </button>
+            </div>
+          )}
         </div>
-      )}      {/* Conversation Section - For accepted consultations */}
+      )}      {/* Conversation Section - For accepted and in-progress consultations */}
       {(typedConsultation?.status?.toLowerCase() === 'accepted' || 
-        typedConsultation?.status?.toLowerCase() === 'Accepted') && (
+        typedConsultation?.status?.toLowerCase() === 'inprogress') && (
         <div className="mt-8 border-t border-gray-200 pt-6">
           <h3 className="text-xl font-semibold mb-4">Conversation</h3>
           
@@ -594,6 +832,89 @@ const ConsultationDetailPage: React.FC = () => {
             >
               Send
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only Conversation Section - For completed public consultations */}
+      {typedConsultation?.status?.toLowerCase() === 'completed' && 
+        localMessages && localMessages.length > 0 && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <h3 className="text-xl font-semibold mb-4">Consultation History</h3>
+          
+          <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4">
+              {localMessages.map((message: Message, index: number) => (
+                <div 
+                  key={index}
+                  className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div 
+                    className={`max-w-3/4 rounded-lg p-3 ${
+                      message.senderId === typedConsultation?.expertId 
+                        ? 'bg-amber-100 text-amber-900' 
+                        : 'bg-gray-200 text-gray-800'
+                    }`}
+                  >
+                    <p className="text-xs font-semibold mb-1">
+                      {message.senderName || 'Unknown'}
+                      {message.senderId === typedConsultation?.expertId && 
+                        <span className="ml-2 text-amber-600">(Expert)</span>
+                      }
+                    </p>
+                    <p className="text-sm mb-1">{message.text}</p>
+                    <p className="text-xs text-gray-500">{new Date(message.sentAt).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-500 mt-2 italic">This consultation has been completed.</p>
+        </div>
+      )}
+
+      {/* Edit Consultation Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg mx-4">
+            <h2 className="text-xl font-bold mb-4">Edit Consultation</h2>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Title</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+              <textarea
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={5}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditConsultation}
+                disabled={!editTitle.trim() || !editDescription.trim()}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded disabled:opacity-50"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}

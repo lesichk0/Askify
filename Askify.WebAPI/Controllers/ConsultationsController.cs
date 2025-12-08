@@ -189,13 +189,23 @@ namespace Askify.WebAPI.Controllers
             var consultation = await _consultationService.GetByIdAsync(id);
             if (consultation == null) return NotFound();
             
-            var expertId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             
-            if (string.IsNullOrEmpty(expertId) || consultation.ExpertId != expertId)
+            // Allow both the client (UserId) and the expert (ExpertId) to complete the consultation
+            if (string.IsNullOrEmpty(userId) || (consultation.ExpertId != userId && consultation.UserId != userId))
                 return Forbid();
                 
             var result = await _consultationService.CompleteConsultationAsync(id);
             if (!result) return BadRequest();
+            
+            // Notify via SignalR so both parties get the update
+            await _hubContext.Clients.Group($"consultation_{id}").SendAsync("ConsultationCompleted", new 
+            { 
+                consultationId = id, 
+                completedBy = userId,
+                completedAt = DateTime.UtcNow 
+            });
+            
             return Ok();
         }        [HttpPost("{id}/accept")]
         public async Task<IActionResult> Accept(int id)
@@ -336,6 +346,87 @@ namespace Askify.WebAPI.Controllers
             {
                 _logger.LogError(ex, "Error retrieving consultations available for experts");
                 return StatusCode(500, new { message = "An error occurred while retrieving consultations" });
+            }
+        }
+
+        [HttpPost("{id}/set-price")]
+        [Authorize(Roles = "Expert")]
+        public async Task<IActionResult> SetPrice(int id, [FromBody] SetPriceDto dto)
+        {
+            try
+            {
+                var expertId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(expertId))
+                    return Unauthorized();
+
+                if (dto.Price <= 0)
+                    return BadRequest(new { message = "Price must be greater than 0" });
+
+                var result = await _consultationService.SetPriceAsync(id, expertId, dto.Price);
+                if (!result)
+                    return BadRequest(new { message = "Failed to set price. Make sure the consultation is accepted and not free." });
+
+                // Notify via SignalR
+                await _hubContext.Clients.Group($"consultation_{id}").SendAsync("PriceUpdated", new { consultationId = id, price = dto.Price });
+
+                return Ok(new { message = "Price set successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting price for consultation {Id}", id);
+                return StatusCode(500, new { message = "An error occurred while setting the price" });
+            }
+        }
+
+        [HttpPost("{id}/accept-price")]
+        [Authorize]
+        public async Task<IActionResult> AcceptPrice(int id)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var result = await _consultationService.AcceptPriceAsync(id, userId);
+                if (!result)
+                    return BadRequest(new { message = "Failed to accept price. Make sure you are the consultation owner and the consultation is awaiting payment." });
+
+                // Notify via SignalR
+                await _hubContext.Clients.Group($"consultation_{id}").SendAsync("PaymentAccepted", new { consultationId = id });
+
+                return Ok(new { message = "Payment accepted. Consultation is now in progress." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error accepting price for consultation {Id}", id);
+                return StatusCode(500, new { message = "An error occurred while accepting the price" });
+            }
+        }
+
+        [HttpPost("{id}/reject-price")]
+        [Authorize]
+        public async Task<IActionResult> RejectPrice(int id)
+        {
+            try
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var result = await _consultationService.RejectPriceAsync(id, userId);
+                if (!result)
+                    return BadRequest(new { message = "Failed to reject price. Make sure you are the consultation owner and the consultation is awaiting payment." });
+
+                // Notify via SignalR
+                await _hubContext.Clients.Group($"consultation_{id}").SendAsync("PriceRejected", new { consultationId = id });
+
+                return Ok(new { message = "Price rejected. The consultation is now open for other experts." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting price for consultation {Id}", id);
+                return StatusCode(500, new { message = "An error occurred while rejecting the price" });
             }
         }
     }

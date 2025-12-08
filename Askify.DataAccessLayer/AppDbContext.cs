@@ -109,6 +109,10 @@ namespace Askify.DataAccessLayer
                 .Property(p => p.Amount)
                 .HasPrecision(18, 4);
 
+            modelBuilder.Entity<Consultation>()
+                .Property(c => c.Price)
+                .HasPrecision(18, 2);
+
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Post)
                 .WithMany(p => p.Comments)
