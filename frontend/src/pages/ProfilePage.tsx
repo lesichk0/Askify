@@ -310,36 +310,38 @@ const ProfilePage: React.FC = () => {
           </div>
           
           <div className="flex-grow">
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">{profile?.fullName}</h1>
-            <p className="text-gray-500 mb-2">{profile?.email}</p>
-            
-            {/* Expert Rating Display */}
-            {profile?.isVerifiedExpert && (
-              <div className="flex items-center mb-3">
-                <div className="flex text-yellow-500">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span 
-                      key={star} 
-                      className={`text-lg ${
-                        profile.averageRating && star <= Math.round(profile.averageRating) 
-                          ? 'text-yellow-500' 
-                          : 'text-gray-300'
-                      }`}
-                    >
-                      ★
-                    </span>
-                  ))}
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold text-gray-800">{profile?.fullName}</h1>
+              
+              {/* Expert Rating Display - on the right */}
+              {(profile?.isVerifiedExpert || profile?.role === 'Expert') && (
+                <div className="flex items-center">
+                  <div className="flex text-yellow-500">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span 
+                        key={star} 
+                        className={`text-lg ${
+                          profile.averageRating && star <= Math.round(profile.averageRating) 
+                            ? 'text-yellow-500' 
+                            : 'text-gray-300'
+                        }`}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  {profile.averageRating !== undefined && profile.averageRating !== null ? (
+                    <>
+                      <span className="ml-2 text-gray-700 font-medium">{profile.averageRating.toFixed(1)}</span>
+                      <span className="ml-1 text-gray-500">({profile.reviewsCount || 0} reviews)</span>
+                    </>
+                  ) : (
+                    <span className="ml-2 text-gray-500 italic">No reviews yet</span>
+                  )}
                 </div>
-                {profile.averageRating !== undefined && profile.averageRating !== null ? (
-                  <>
-                    <span className="ml-2 text-gray-700 font-medium">{profile.averageRating.toFixed(1)}</span>
-                    <span className="ml-1 text-gray-500">({profile.reviewsCount || 0} reviews)</span>
-                  </>
-                ) : (
-                  <span className="ml-2 text-gray-500 italic">No reviews yet</span>
-                )}
-              </div>
-            )}
+              )}
+            </div>
+            <p className="text-gray-500 mb-2">{profile?.email}</p>
             
             <p className="text-gray-500 mb-3">Joined: {profile?.joinDate ? new Date(profile.joinDate).toLocaleDateString() : 'Unknown'}</p>
             
