@@ -29,6 +29,7 @@ interface ExtendedConsultation {
   id: number;
   title: string;
   description: string;
+  category?: string; // ML-classified category
   status: string;
   userId: string;
   expertId?: string;
@@ -549,6 +550,7 @@ const ConsultationDetailPage: React.FC = () => {
   const { 
     title = 'Untitled Consultation', 
     description = 'No description available', 
+    category,
     status = 'pending', 
     expertName = '',
     createdAt,
@@ -585,7 +587,17 @@ const ConsultationDetailPage: React.FC = () => {
         <div className="p-6">
           <div className="flex justify-between items-start mb-6">
             {/* Use fallbacks inline rather than in destructuring */}
-            <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">{title || 'Untitled Consultation'}</h1>
+              {category && (
+                <span className="inline-flex items-center mt-2 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                  <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  {category}
+                </span>
+              )}
+            </div>
             <span className={`px-4 py-1 rounded-full text-sm font-medium ${
               status?.toLowerCase() === 'completed' ? 'bg-green-100 text-green-800' :
               status?.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800' :

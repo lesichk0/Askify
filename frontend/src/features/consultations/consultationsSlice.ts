@@ -9,6 +9,7 @@ export interface Consultation {
   expertName?: string;
   title: string;
   description: string;
+  category?: string; // ML-classified category
   isFree: boolean;
   isOpenRequest: boolean;
   isPublicable: boolean;

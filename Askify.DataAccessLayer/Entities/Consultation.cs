@@ -7,6 +7,7 @@
         public string? ExpertId { get; set; }
         public string Title { get; set; } = null!; // Added title field
         public string Description { get; set; } = null!; // Added description field
+        public string? Category { get; set; } // ML-classified category
         public bool IsFree { get; set; }
         public bool IsPaid { get; set; }
         public decimal? Price { get; set; } // Expert's requested price

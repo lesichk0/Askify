@@ -174,6 +174,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddSingleton<ICategoryClassificationService, CategoryClassificationService>(); // ML Service - Singleton for performance
 builder.Services.AddScoped<IConsultationService, ConsultationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();

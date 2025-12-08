@@ -163,6 +163,7 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
                     expertName={consultation.expertName || 'Unknown Expert'}
                     description={consultation.description || 'No description available.'}
                     status={consultation.status as any}
+                    category={consultation.category}
                     date={formatDate(consultation.createdAt)}
                 />
             ))}

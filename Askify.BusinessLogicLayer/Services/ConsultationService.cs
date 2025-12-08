@@ -11,12 +11,14 @@ namespace Askify.BusinessLogicLayer.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly ICategoryClassificationService _classificationService;
 
-        public ConsultationService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService)
+        public ConsultationService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, ICategoryClassificationService classificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
+            _classificationService = classificationService;
         }
 
         public async Task<ConsultationDto?> GetByIdAsync(int id)
@@ -77,6 +79,12 @@ namespace Askify.BusinessLogicLayer.Services
             }
             consultation.Status = "Pending";
             consultation.CreatedAt = DateTime.UtcNow;
+            
+            // ML-based category classification
+            consultation.Category = _classificationService.ClassifyQuestion(
+                consultationDto.Title ?? "", 
+                consultationDto.Description ?? "");
+            
               // Only set ExpertId to null if it's an open request or if no ExpertId was provided
             // If ExpertId is provided, respect it and don't override it
             if (consultationDto.IsOpenRequest || string.IsNullOrEmpty(consultationDto.ExpertId))

@@ -9,8 +9,23 @@ interface ConsultationCardProps {
   status: string;
   expertName?: string;
   date: string;
+  category?: string; // ML-classified category
   tags?: string[]; // Add tags prop
 }
+
+// Category color mapping
+const categoryColors: Record<string, string> = {
+  'Technology': 'bg-blue-100 text-blue-800 border-blue-200',
+  'Health & Medicine': 'bg-red-100 text-red-800 border-red-200',
+  'Legal': 'bg-purple-100 text-purple-800 border-purple-200',
+  'Finance & Business': 'bg-green-100 text-green-800 border-green-200',
+  'Education': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  'Career & Employment': 'bg-orange-100 text-orange-800 border-orange-200',
+  'Relationships': 'bg-pink-100 text-pink-800 border-pink-200',
+  'Home & Living': 'bg-teal-100 text-teal-800 border-teal-200',
+  'Travel': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  'Other': 'bg-gray-100 text-gray-800 border-gray-200',
+};
 
 const ConsultationCard: React.FC<ConsultationCardProps> = ({
   id,
@@ -19,6 +34,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
   status,
   expertName,
   date,
+  category,
   tags = [] // Default to empty array
 }) => {
   const navigate = useNavigate();
@@ -55,6 +71,20 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
             {status}
           </span>
         </div>
+        
+        {/* Display ML Category */}
+        {category && (
+          <div className="mb-3">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+              categoryColors[category] || categoryColors['Other']
+            }`}>
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              {category}
+            </span>
+          </div>
+        )}
         
         {/* Display Tags */}
         {tags.length > 0 && (

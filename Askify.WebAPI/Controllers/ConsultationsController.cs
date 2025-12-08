@@ -18,12 +18,26 @@ namespace Askify.WebAPI.Controllers
         private readonly IConsultationService _consultationService;
         private readonly ILogger<ConsultationsController> _logger;
         private readonly IHubContext<ConsultationHub> _hubContext;
+        private readonly ICategoryClassificationService _classificationService;
 
-        public ConsultationsController(IConsultationService consultationService, ILogger<ConsultationsController> logger, IHubContext<ConsultationHub> hubContext)
+        public ConsultationsController(
+            IConsultationService consultationService, 
+            ILogger<ConsultationsController> logger, 
+            IHubContext<ConsultationHub> hubContext,
+            ICategoryClassificationService classificationService)
         {
             _consultationService = consultationService;
             _logger = logger;
             _hubContext = hubContext;
+            _classificationService = classificationService;
+        }
+
+        [HttpGet("categories")]
+        [AllowAnonymous]
+        public ActionResult<IEnumerable<string>> GetCategories()
+        {
+            var categories = _classificationService.GetAllCategories();
+            return Ok(categories);
         }
 
         [HttpGet]
