@@ -28,14 +28,17 @@ namespace Askify.BusinessLogicLayer.Configurations
             // Consultation
             CreateMap<Askify.DataAccessLayer.Entities.Consultation, ConsultationDto>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
+                .ForMember(dest => dest.ExpertName, opt => opt.MapFrom(src => src.Expert != null ? src.Expert.FullName : null))
+                .ForMember(dest => dest.Messages, opt => opt.MapFrom(src => src.Messages));
             CreateMap<CreateConsultationDto, Consultation>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
             CreateMap<UpdateConsultationDto, Consultation>();
 
             // Message
-            CreateMap<Message, MessageDto>();
+            CreateMap<Message, MessageDto>()
+                .ForMember(dest => dest.SenderName, opt => opt.MapFrom(src => src.Sender != null ? src.Sender.FullName : null));
             CreateMap<CreateMessageDto, Message>();
 
             // Feedback

@@ -3,7 +3,9 @@
     public class MessageDto
     {
         public int Id { get; set; }
+        public int ConsultationId { get; set; }
         public string SenderId { get; set; } = null!;
+        public string? SenderName { get; set; }
         public string ReceiverId { get; set; } = null!;
         public string? Text { get; set; }
         public string? ImageUrl { get; set; }

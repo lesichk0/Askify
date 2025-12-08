@@ -12,10 +12,12 @@ namespace Askify.WebAPI.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly IMessageService _messageService;
+        private readonly IConsultationService _consultationService;
 
-        public MessagesController(IMessageService messageService)
+        public MessagesController(IMessageService messageService, IConsultationService consultationService)
         {
             _messageService = messageService;
+            _consultationService = consultationService;
         }
 
         [HttpGet]
@@ -66,6 +68,17 @@ namespace Askify.WebAPI.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            // Validate ConsultationId if provided
+            if (messageDto.ConsultationId.HasValue && messageDto.ConsultationId > 0)
+            {
+                var consultation = await _consultationService.GetByIdAsync(messageDto.ConsultationId.Value);
+                if (consultation == null) return BadRequest("Consultation not found");
+            }
+            else
+            {
+                return BadRequest("ConsultationId is required");
+            }
 
             var messageId = await _messageService.SendMessageAsync(userId, messageDto);
             return CreatedAtAction(nameof(GetById), new { id = messageId }, messageId);

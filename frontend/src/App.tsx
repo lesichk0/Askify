@@ -19,7 +19,7 @@ function App() {
   const dispatch = useAppDispatch();
   const { isAuthenticated, user } = useAppSelector(state => state.auth);
 
-  // Check authentication status when app loads
+
   useEffect(() => {
     dispatch(checkAuthStatus());
     

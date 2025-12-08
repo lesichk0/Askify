@@ -15,9 +15,11 @@ interface ExpertOffer {
 interface Message {
   id: number;
   consultationId: number;
-  userId: string;
-  content: string;
-  createdAt: string;
+  senderId: string;
+  senderName?: string;
+  text?: string;
+  status: string;
+  sentAt: string;
 }
 
 // Extend consultation interface to include missing properties
@@ -123,16 +125,27 @@ const ConsultationDetailPage: React.FC = () => {
   };
   
   const handleRespondToConsultation = async () => {
-    if (!id || !responseText.trim()) return;
+    if (!id || !responseText.trim() || !currentConsultation) return;
     
     setSubmitting(true);
     setResponseError(null);
     
     try {
-      // Send the response as a message
+      // Determine who the receiver is (the other party in the conversation)
+      const receiverId = user?.id === currentConsultation.userId 
+        ? currentConsultation.expertId 
+        : currentConsultation.userId;
+      
+      if (!receiverId) {
+        setResponseError('Cannot determine recipient. Please try again later.');
+        return;
+      }
+      
+      // Send the response as a message with correct DTO structure
       await api.post('/messages', {
+        receiverId: receiverId,
         consultationId: parseInt(id),
-        content: responseText
+        text: responseText
       });
       
       // Clear the response text
@@ -496,17 +509,18 @@ const ConsultationDetailPage: React.FC = () => {
                 {typedConsultation.messages.map((message: Message, index: number) => (
                   <div 
                     key={index}
-                    className={`flex ${message.userId === user?.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
                     <div 
                       className={`max-w-3/4 rounded-lg p-3 ${
-                        message.userId === user?.id 
+                        message.senderId === user?.id 
                           ? 'bg-amber-100 text-amber-900' 
                           : 'bg-gray-200 text-gray-800'
                       }`}
                     >
-                      <p className="text-sm mb-1">{message.content}</p>
-                      <p className="text-xs text-gray-500">{new Date(message.createdAt).toLocaleString()}</p>
+                      <p className="text-xs font-semibold mb-1">{message.senderName || 'Unknown'}</p>
+                      <p className="text-sm mb-1">{message.text}</p>
+                      <p className="text-xs text-gray-500">{new Date(message.sentAt).toLocaleString()}</p>
                     </div>
                   </div>
                 ))}
