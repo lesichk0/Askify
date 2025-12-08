@@ -21,6 +21,7 @@ export class WebSocketService {
   private onConsultationAccepted: ((data: any) => void) | null = null;
   private onConsultationCompleted: ((data: any) => void) | null = null;
   private onConsultationUpdated: ((data: any) => void) | null = null;
+  private onNewConsultationRequest: ((data: any) => void) | null = null;
   private onNewNotification: ((notification: any) => void) | null = null;
   private onConnected: ((data: any) => void) | null = null;
   private onError: ((message: string) => void) | null = null;
@@ -86,6 +87,13 @@ export class WebSocketService {
         console.log('Price rejected via WebSocket:', data);
         if (this.onConsultationUpdated) {
           this.onConsultationUpdated(data);
+        }
+      });
+
+      this.consultationConnection.on('NewConsultationRequest', (data: any) => {
+        console.log('New consultation request via WebSocket:', data);
+        if (this.onNewConsultationRequest) {
+          this.onNewConsultationRequest(data);
         }
       });
 
@@ -208,6 +216,10 @@ export class WebSocketService {
 
   onConsultationUpdatedCallback(callback: (data: any) => void): void {
     this.onConsultationUpdated = callback;
+  }
+
+  onNewConsultationRequestCallback(callback: (data: any) => void): void {
+    this.onNewConsultationRequest = callback;
   }
 
   onNewNotificationCallback(callback: (notification: any) => void): void {

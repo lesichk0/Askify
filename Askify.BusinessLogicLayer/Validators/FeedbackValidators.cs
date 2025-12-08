@@ -10,6 +10,9 @@ namespace Askify.BusinessLogicLayer.Validators
             RuleFor(x => x.ExpertId)
                 .NotEmpty().WithMessage("Expert ID is required.");
 
+            RuleFor(x => x.ConsultationId)
+                .GreaterThan(0).WithMessage("Consultation ID is required.");
+
             RuleFor(x => x.Rating)
                 .InclusiveBetween(1, 5).WithMessage("Rating must be between 1 and 5.");
 

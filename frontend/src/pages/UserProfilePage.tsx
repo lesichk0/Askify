@@ -11,6 +11,8 @@ interface UserProfile {
   avatarUrl?: string;
   isVerifiedExpert: boolean;
   role?: string;
+  averageRating?: number;
+  reviewsCount?: number;
 }
 
 interface Post {
@@ -128,6 +130,27 @@ const UserProfilePage: React.FC = () => {
               )}
             </div>
             
+            {/* Expert Rating Display */}
+            {profile.isVerifiedExpert && (
+              <div className="flex items-center mt-2">
+                {profile.averageRating !== undefined && profile.averageRating !== null ? (
+                  <>
+                    <div className="flex text-yellow-500">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span key={star} className={star <= Math.round(profile.averageRating!) ? 'text-yellow-500' : 'text-gray-300'}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="ml-2 text-gray-700 font-medium">{profile.averageRating.toFixed(1)}</span>
+                    <span className="ml-1 text-gray-500">({profile.reviewsCount || 0} reviews)</span>
+                  </>
+                ) : (
+                  <span className="text-gray-500 italic">No reviews yet</span>
+                )}
+              </div>
+            )}
+            
             {profile.bio && (
               <p className="text-gray-600 mt-2">{profile.bio}</p>
             )}
@@ -169,8 +192,18 @@ const UserProfilePage: React.FC = () => {
                 <div className="flex items-center justify-between mt-4">
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <span>{formatDate(post.createdAt)}</span>
-                    <span>❤️ {post.likesCount || 0}</span>
-                    <span>💬 {post.commentsCount || 0}</span>
+                    <span className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      {post.likesCount || 0}
+                    </span>
+                    <span className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      {post.commentsCount || 0}
+                    </span>
                   </div>
                   
                   {post.tags && post.tags.length > 0 && (

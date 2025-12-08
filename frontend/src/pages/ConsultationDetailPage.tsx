@@ -68,6 +68,10 @@ const ConsultationDetailPage: React.FC = () => {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [priceInput, setPriceInput] = useState('');
   const [priceSubmitting, setPriceSubmitting] = useState(false);
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type });
@@ -107,6 +111,50 @@ const ConsultationDetailPage: React.FC = () => {
       }
     }
   }, [currentConsultation]);
+
+  // Check if user has already rated this consultation
+  useEffect(() => {
+    const checkExistingRating = async () => {
+      const typed = currentConsultation as ExtendedConsultation;
+      
+      // Only check if we have valid data and consultation is completed
+      if (!typed?.id || !user?.id || !typed?.status) {
+        return; // Don't change hasRated state if data isn't ready
+      }
+      
+      console.log('Checking rating conditions:', {
+        consultationId: typed.id,
+        expertId: typed.expertId,
+        userId: user.id,
+        status: typed.status,
+        consultationUserId: typed.userId,
+        isOwner: user.id === typed.userId
+      });
+      
+      // Only check for rating if this is a completed consultation owned by current user
+      if (typed.status.toLowerCase() === 'completed' && user.id === typed.userId && typed.expertId) {
+        try {
+          console.log(`Calling API: /feedbacks/check/consultation/${typed.id}`);
+          const response = await api.get(`/feedbacks/check/consultation/${typed.id}`);
+          console.log('Check rating API response:', response.data, typeof response.data);
+          // Handle the boolean response - be explicit about what we expect
+          if (response.data === true) {
+            setHasRated(true);
+          } else {
+            setHasRated(false);
+          }
+        } catch (error) {
+          console.error('Error checking existing rating:', error);
+          // Don't set hasRated to true on error - assume not rated
+          setHasRated(false);
+        }
+      }
+      // Note: We don't reset to false here if status isn't completed, 
+      // because the user might have just submitted a rating
+    };
+    
+    checkExistingRating();
+  }, [currentConsultation, user]);
 
   // WebSocket setup for real-time messages
   useEffect(() => {
@@ -392,6 +440,30 @@ const ConsultationDetailPage: React.FC = () => {
       showToast('Failed to reject price. Please try again.', 'error');
     } finally {
       setPriceSubmitting(false);
+    }
+  };
+
+  const handleSubmitRating = async () => {
+    if (!typedConsultation?.expertId || !typedConsultation?.id || ratingValue === 0) {
+      showToast('Please select a rating', 'error');
+      return;
+    }
+    
+    setRatingSubmitting(true);
+    try {
+      await api.post('/feedbacks', {
+        expertId: typedConsultation.expertId,
+        consultationId: typedConsultation.id,
+        rating: ratingValue,
+        comment: ratingComment || null
+      });
+      setHasRated(true);
+      showToast('Thank you for your feedback!', 'success');
+    } catch (err: any) {
+      console.error('Error submitting rating:', err);
+      showToast(err.response?.data?.message || 'Failed to submit rating. Please try again.', 'error');
+    } finally {
+      setRatingSubmitting(false);
     }
   };
   
@@ -871,6 +943,70 @@ const ConsultationDetailPage: React.FC = () => {
           </div>
           
           <p className="text-sm text-gray-500 mt-2 italic">This consultation has been completed.</p>
+        </div>
+      )}
+
+      {/* Rate Expert Section - Only for clients after consultation is completed */}
+      {typedConsultation?.status?.toLowerCase() === 'completed' && 
+        user?.id === typedConsultation?.userId && 
+        typedConsultation?.expertId &&
+        !hasRated && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <h3 className="text-xl font-semibold mb-4">Rate Your Expert</h3>
+          
+          <div className="bg-amber-50 rounded-lg p-6">
+            <p className="text-gray-700 mb-4">How was your experience with {typedConsultation.expertName || 'the expert'}?</p>
+            
+            <div className="flex items-center mb-4">
+              <span className="text-gray-600 mr-3">Your Rating:</span>
+              <div className="flex space-x-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setRatingValue(star)}
+                    className={`text-3xl ${star <= ratingValue ? 'text-yellow-500' : 'text-gray-300'} hover:text-yellow-400 transition-colors`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              {ratingValue > 0 && (
+                <span className="ml-3 text-gray-600">({ratingValue}/5)</span>
+              )}
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">Comment (optional)</label>
+              <textarea
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                placeholder="Share your experience..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+            
+            <button
+              onClick={handleSubmitRating}
+              disabled={ratingValue === 0 || ratingSubmitting}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-2 rounded disabled:opacity-50"
+            >
+              {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Thank You Message After Rating */}
+      {hasRated && typedConsultation?.status?.toLowerCase() === 'completed' && user?.id === typedConsultation?.userId && (
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <div className="bg-green-50 rounded-lg p-6 text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h4 className="text-lg font-semibold text-green-700">Thank you for your feedback!</h4>
+            <p className="text-gray-600">Your rating helps other users find great experts.</p>
+          </div>
         </div>
       )}
 

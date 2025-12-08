@@ -7,6 +7,7 @@ import { fetchConsultations } from '../features/consultations/consultationsSlice
 const HomePage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { consultations, loading, error } = useAppSelector(state => state.consultations);
+  const { isAuthenticated } = useAppSelector(state => state.auth);
   
   useEffect(() => {
     // Fetch public consultations when component mounts
@@ -14,9 +15,15 @@ const HomePage: React.FC = () => {
   }, [dispatch]);
 
   // Filter to only show completed and public consultations
-  const featuredConsultations = consultations.filter(
-    consultation => consultation.isPublicable === true
-  );
+  // For unauthenticated users, only show completed consultations
+  const featuredConsultations = consultations.filter(consultation => {
+    if (!consultation.isPublicable) return false;
+    // For unauthenticated users, only show completed consultations
+    if (!isAuthenticated && consultation.status?.toLowerCase() !== 'completed') {
+      return false;
+    }
+    return true;
+  });
   
   // Format date helper function
   const formatDate = (dateString: string) => {

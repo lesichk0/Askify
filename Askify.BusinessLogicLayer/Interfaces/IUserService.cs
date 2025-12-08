@@ -1,4 +1,5 @@
 using Askify.BusinessLogicLayer.DTO;
+using Askify.DataAccessLayer.Entities;
 
 namespace Askify.BusinessLogicLayer.Interfaces
 {
@@ -12,5 +13,6 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<bool> BlockUserAsync(string id, string reason);
         Task<bool> UnblockUserAsync(string id);
         Task<bool> VerifyExpertAsync(string id);
+        Task<IEnumerable<Feedback>> GetFeedbacksForExpertAsync(string expertId);
     }
 }

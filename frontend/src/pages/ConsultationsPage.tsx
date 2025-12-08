@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { fetchConsultations, getConsultationsByUserId, fetchOpenConsultationRequests } from '../features/consultations/consultationsSlice';
 import ConsultationCard from '../components/ConsultationCard';
+import { webSocketService } from '../services/WebSocketService';
 
-// Define missing interfaces
 interface ConsultationsPageProps {
   expertView?: boolean;
   showMine?: boolean;
@@ -16,22 +16,18 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
 }) => {
   const dispatch = useAppDispatch();
   const { consultations, loading, error } = useAppSelector(state => state.consultations);
-  const { user } = useAppSelector(state => state.auth);
+  const { user, isAuthenticated } = useAppSelector(state => state.auth);
   
   useEffect(() => {
-    // Create a function to handle the fetching logic
     const fetchAppropriateConsultations = async () => {
       if (!dispatch) return;
       
       try {
         if (showMine && user?.id) {
-          // For "My Consultations" view, use the specialized action for user consultations
           dispatch(getConsultationsByUserId(user.id));
         } else if (expertView) {
-          // For expert view, fetch open requests using specialized action
           dispatch(fetchOpenConsultationRequests());
         } else {
-          // For public view, fetch all publicable consultations
           dispatch(fetchConsultations());
         }
       } catch (err) {
@@ -40,7 +36,33 @@ const ConsultationsPage: React.FC<ConsultationsPageProps> = ({
     };
 
     fetchAppropriateConsultations();
-  }, [dispatch, showMine, expertView, user]);
+    
+    if (isAuthenticated && (showMine || expertView)) {
+      const setupWebSocket = async () => {
+        try {
+          if (!webSocketService.isConsultationConnected()) {
+            await webSocketService.initializeConsultationConnection();
+          }
+          
+          webSocketService.onNewConsultationRequestCallback(() => {
+            fetchAppropriateConsultations();
+          });
+          
+          webSocketService.onConsultationUpdatedCallback(() => {
+            fetchAppropriateConsultations();
+          });
+          
+          webSocketService.onConsultationCompletedCallback(() => {
+            fetchAppropriateConsultations();
+          });
+        } catch (error) {
+          console.error('WebSocket setup failed:', error);
+        }
+      };
+      
+      setupWebSocket();
+    }
+  }, [dispatch, showMine, expertView, user, isAuthenticated]);
   
   // Filter consultations based on the view
   // This provides a client-side backup in case server filtering doesn't work

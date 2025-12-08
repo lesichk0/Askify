@@ -12,6 +12,9 @@ interface UserProfile {
   role: string;
   postsCount: number;
   consultationsCount: number;
+  isVerifiedExpert?: boolean;
+  averageRating?: number;
+  reviewsCount?: number;
 }
 
 interface Post {
@@ -309,6 +312,35 @@ const ProfilePage: React.FC = () => {
           <div className="flex-grow">
             <h1 className="text-2xl font-bold text-gray-800 mb-1">{profile?.fullName}</h1>
             <p className="text-gray-500 mb-2">{profile?.email}</p>
+            
+            {/* Expert Rating Display */}
+            {profile?.isVerifiedExpert && (
+              <div className="flex items-center mb-3">
+                <div className="flex text-yellow-500">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span 
+                      key={star} 
+                      className={`text-lg ${
+                        profile.averageRating && star <= Math.round(profile.averageRating) 
+                          ? 'text-yellow-500' 
+                          : 'text-gray-300'
+                      }`}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+                {profile.averageRating !== undefined && profile.averageRating !== null ? (
+                  <>
+                    <span className="ml-2 text-gray-700 font-medium">{profile.averageRating.toFixed(1)}</span>
+                    <span className="ml-1 text-gray-500">({profile.reviewsCount || 0} reviews)</span>
+                  </>
+                ) : (
+                  <span className="ml-2 text-gray-500 italic">No reviews yet</span>
+                )}
+              </div>
+            )}
+            
             <p className="text-gray-500 mb-3">Joined: {profile?.joinDate ? new Date(profile.joinDate).toLocaleDateString() : 'Unknown'}</p>
             
             {/* Bio Section with Edit */}
@@ -370,7 +402,30 @@ const ProfilePage: React.FC = () => {
                 <span className="block text-xl font-bold text-amber-600">{profile?.consultationsCount || 0}</span>
                 <span className="text-sm text-gray-500">Consultations</span>
               </div>
+              
+              {profile?.isVerifiedExpert && (
+                <div className="text-center">
+                  <span className="block text-xl font-bold text-amber-600">
+                    {profile.averageRating !== undefined && profile.averageRating !== null 
+                      ? profile.averageRating.toFixed(1) 
+                      : '—'}
+                  </span>
+                  <span className="text-sm text-gray-500">Rating ({profile.reviewsCount || 0})</span>
+                </div>
+              )}
             </div>
+            
+            {/* Expert Badge */}
+            {profile?.isVerifiedExpert && (
+              <div className="mt-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Verified Expert
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -145,6 +145,19 @@ namespace Askify.WebAPI.Controllers
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var consultationId = await _consultationService.CreateConsultationAsync(userId, consultationDto);
+            
+            // Broadcast real-time notification to the expert if specified
+            if (!string.IsNullOrEmpty(consultationDto.ExpertId))
+            {
+                await _hubContext.Clients.User(consultationDto.ExpertId).SendAsync("NewConsultationRequest", new
+                {
+                    consultationId = consultationId,
+                    userId = userId,
+                    title = consultationDto.Title,
+                    message = "You have a new consultation request"
+                });
+            }
+            
             return CreatedAtAction(nameof(GetById), new { id = consultationId }, consultationId);
         }
 
@@ -263,6 +276,26 @@ namespace Askify.WebAPI.Controllers
             if (!isAdmin && string.IsNullOrEmpty(userId) || 
                 (consultation.UserId != userId && consultation.ExpertId != userId))
                 return Forbid();
+            
+            // Check cancel permissions based on consultation status and user role
+            var isClient = consultation.UserId == userId;
+            var isExpert = consultation.ExpertId == userId;
+            var status = consultation.Status?.ToLower();
+            
+            // Expert can only cancel free consultations or pending consultations
+            if (isExpert && !isAdmin)
+            {
+                if (status != "pending" && !consultation.IsFree)
+                {
+                    return BadRequest(new { message = "Expert can only cancel free consultations or decline pending requests." });
+                }
+            }
+            
+            // For accepted/inprogress paid consultations, only client can cancel
+            if (!isClient && !isAdmin && (status == "accepted" || status == "inprogress") && !consultation.IsFree)
+            {
+                return BadRequest(new { message = "Only the client can cancel an ongoing paid consultation." });
+            }
                 
             var result = await _consultationService.CancelConsultationAsync(id);
             if (!result) return BadRequest();

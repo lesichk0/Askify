@@ -1,5 +1,6 @@
 ﻿using Askify.DataAccessLayer.Entities;
 using Askify.DataAccessLayer.Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Askify.DataAccessLayer.Data.Repositories
 {
@@ -14,7 +15,9 @@ namespace Askify.DataAccessLayer.Data.Repositories
 
         public async Task<IEnumerable<Feedback>> GetForExpertAsync(string expertId)
         {
-            return await Task.FromResult(new List<Feedback>());
+            return await _context.Feedbacks
+                .Where(f => f.ExpertId == expertId)
+                .ToListAsync();
         }
     }
 

@@ -56,6 +56,30 @@ namespace Askify.WebAPI.Controllers
             return Ok(feedbacks);
         }
 
+        [HttpGet("check/{expertId}")]
+        [Authorize]
+        public async Task<ActionResult<bool>> HasUserRatedExpert(string expertId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var hasRated = await _feedbackService.HasUserRatedExpertAsync(userId, expertId);
+            Console.WriteLine($"[FeedbacksController] Check rating - UserId: {userId}, ExpertId: {expertId}, HasRated: {hasRated}");
+            return Ok(hasRated);
+        }
+
+        [HttpGet("check/consultation/{consultationId}")]
+        [Authorize]
+        public async Task<ActionResult<bool>> HasUserRatedConsultation(int consultationId)
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            var hasRated = await _feedbackService.HasUserRatedConsultationAsync(userId, consultationId);
+            Console.WriteLine($"[FeedbacksController] Check consultation rating - UserId: {userId}, ConsultationId: {consultationId}, HasRated: {hasRated}");
+            return Ok(hasRated);
+        }
+
         [HttpPost]
         [Authorize]
         public async Task<ActionResult<int>> Create([FromBody] CreateFeedbackDto feedbackDto)
@@ -63,8 +87,15 @@ namespace Askify.WebAPI.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            var feedbackId = await _feedbackService.CreateFeedbackAsync(userId, feedbackDto);
-            return CreatedAtAction(nameof(GetById), new { id = feedbackId }, feedbackId);
+            try
+            {
+                var feedbackId = await _feedbackService.CreateFeedbackAsync(userId, feedbackDto);
+                return CreatedAtAction(nameof(GetById), new { id = feedbackId }, feedbackId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

@@ -8,8 +8,10 @@
         public string? AvatarUrl { get; set; }
         public bool IsVerifiedExpert { get; set; }
         public bool IsBlocked { get; set; }
-        public string Role { get; set; } = "User"; // Make sure Role property exists and has default
-        public string? Email { get; set; } // Add Email property for better compatibility
+        public string Role { get; set; } = "User";
+        public string? Email { get; set; }
+        public double? AverageRating { get; set; }
+        public int ReviewsCount { get; set; }
     }
 
 }

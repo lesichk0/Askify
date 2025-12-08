@@ -61,14 +61,15 @@ namespace Askify.WebAPI.Controllers
                 foreach (var user in users)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
-                    
-                    // Check if user is an expert (either by role or by IsVerifiedExpert flag)
                     bool isExpert = roles.Contains("Expert") || user.IsVerifiedExpert;
-                    
-                    _logger.LogInformation($"User {user.UserName}: Roles={string.Join(",", roles)}, IsVerifiedExpert={user.IsVerifiedExpert}, IsExpert={isExpert}");
                     
                     if (isExpert)
                     {
+                        var feedbacks = await _userService.GetFeedbacksForExpertAsync(user.Id);
+                        var feedbackList = feedbacks.ToList();
+                        double? averageRating = feedbackList.Any() ? feedbackList.Average(f => f.Rating) : null;
+                        int reviewsCount = feedbackList.Count;
+                        
                         var expertDto = new UserDto
                         {
                             Id = user.Id,
@@ -78,7 +79,9 @@ namespace Askify.WebAPI.Controllers
                             AvatarUrl = user.AvatarUrl,
                             IsVerifiedExpert = user.IsVerifiedExpert,
                             IsBlocked = user.IsBlocked,
-                            Role = "Expert" // Explicitly set role to Expert
+                            Role = "Expert",
+                            AverageRating = averageRating,
+                            ReviewsCount = reviewsCount
                         };
                         
                         expertsList.Add(expertDto);
@@ -174,6 +177,19 @@ namespace Askify.WebAPI.Controllers
                 var postsCount = await _postService.GetUserPostsCountAsync(userId);
                 var consultationsCount = await _consultationService.GetUserConsultationsCountAsync(userId);
                 
+                // Get rating information for experts
+                double? averageRating = null;
+                int reviewsCount = 0;
+                bool isVerifiedExpert = user.IsVerifiedExpert || User.IsInRole("Expert");
+                
+                if (isVerifiedExpert)
+                {
+                    var feedbacks = await _userService.GetFeedbacksForExpertAsync(userId);
+                    var feedbackList = feedbacks.ToList();
+                    averageRating = feedbackList.Any() ? feedbackList.Average(f => f.Rating) : null;
+                    reviewsCount = feedbackList.Count;
+                }
+                
                 var userProfile = new
                 {
                     Id = user.Id,
@@ -181,9 +197,12 @@ namespace Askify.WebAPI.Controllers
                     Email = user.Email ?? string.Empty,
                     Bio = user.Bio ?? string.Empty,
                     JoinDate = DateTime.UtcNow, // Use current time since CreatedAt doesn't exist
-                    Role = User.IsInRole("Expert") ? "Expert" : "User",
+                    Role = isVerifiedExpert ? "Expert" : "User",
                     PostsCount = postsCount,
-                    ConsultationsCount = consultationsCount
+                    ConsultationsCount = consultationsCount,
+                    IsVerifiedExpert = isVerifiedExpert,
+                    AverageRating = averageRating,
+                    ReviewsCount = reviewsCount
                 };
                 
                 return Ok(userProfile);

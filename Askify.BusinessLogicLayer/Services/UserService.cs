@@ -25,19 +25,65 @@ namespace Askify.BusinessLogicLayer.Services
         public async Task<UserDto?> GetByIdAsync(string id)
         {
             var user = await _unitOfWork.Users.GetByIdAsync(id);
-            return user != null ? _mapper.Map<UserDto>(user) : null;
+            if (user == null) return null;
+            
+            var userDto = _mapper.Map<UserDto>(user);
+            
+            // Calculate rating for experts
+            if (user.IsVerifiedExpert)
+            {
+                var feedbacks = await _unitOfWork.Feedbacks.GetForExpertAsync(user.Id);
+                var feedbackList = feedbacks.ToList();
+                userDto.AverageRating = feedbackList.Any() ? feedbackList.Average(f => f.Rating) : null;
+                userDto.ReviewsCount = feedbackList.Count;
+            }
+            
+            return userDto;
         }
 
         public async Task<IEnumerable<UserDto>> GetAllAsync()
         {
             var users = await _unitOfWork.Users.GetAllAsync();
-            return _mapper.Map<IEnumerable<UserDto>>(users);
+            var userDtos = new List<UserDto>();
+            
+            foreach (var user in users)
+            {
+                var userDto = _mapper.Map<UserDto>(user);
+                
+                // Calculate rating for experts
+                if (user.IsVerifiedExpert)
+                {
+                    var feedbacks = await _unitOfWork.Feedbacks.GetForExpertAsync(user.Id);
+                    var feedbackList = feedbacks.ToList();
+                    userDto.AverageRating = feedbackList.Any() ? feedbackList.Average(f => f.Rating) : null;
+                    userDto.ReviewsCount = feedbackList.Count;
+                }
+                
+                userDtos.Add(userDto);
+            }
+            
+            return userDtos;
         }
 
         public async Task<IEnumerable<UserDto>> GetExpertsAsync()
         {
             var experts = await _unitOfWork.Users.GetExpertsAsync();
-            return _mapper.Map<IEnumerable<UserDto>>(experts);
+            var expertDtos = new List<UserDto>();
+            
+            foreach (var expert in experts)
+            {
+                var userDto = _mapper.Map<UserDto>(expert);
+                
+                // Calculate rating for each expert
+                var feedbacks = await _unitOfWork.Feedbacks.GetForExpertAsync(expert.Id);
+                var feedbackList = feedbacks.ToList();
+                userDto.AverageRating = feedbackList.Any() ? feedbackList.Average(f => f.Rating) : null;
+                userDto.ReviewsCount = feedbackList.Count;
+                
+                expertDtos.Add(userDto);
+            }
+            
+            return expertDtos;
         }
 
         public async Task<IEnumerable<UserDto>> SearchUsersAsync(string query)
@@ -102,7 +148,13 @@ namespace Askify.BusinessLogicLayer.Services
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                var role = roles.FirstOrDefault() ?? "User"; // Default to "User" if no role found
+                var role = roles.FirstOrDefault() ?? "User";
+
+                // Get expert's average rating and reviews count
+                var feedbacks = await _unitOfWork.Feedbacks.GetForExpertAsync(user.Id);
+                var feedbackList = feedbacks.ToList();
+                double? averageRating = feedbackList.Any() ? feedbackList.Average(f => f.Rating) : null;
+                int reviewsCount = feedbackList.Count;
 
                 var userDto = new UserDto
                 {
@@ -112,14 +164,21 @@ namespace Askify.BusinessLogicLayer.Services
                     AvatarUrl = user.AvatarUrl,
                     IsVerifiedExpert = user.IsVerifiedExpert,
                     IsBlocked = user.IsBlocked,
-                    Role = role, // Make sure role is included
-                    Email = user.Email
+                    Role = role,
+                    Email = user.Email,
+                    AverageRating = averageRating,
+                    ReviewsCount = reviewsCount
                 };
 
                 userDtos.Add(userDto);
             }
 
             return userDtos;
+        }
+
+        public async Task<IEnumerable<Feedback>> GetFeedbacksForExpertAsync(string expertId)
+        {
+            return await _unitOfWork.Feedbacks.GetForExpertAsync(expertId);
         }
     }
     

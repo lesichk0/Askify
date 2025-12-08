@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { fetchOpenConsultationRequests } from '../features/consultations/consultationsSlice';
+import { webSocketService } from '../services/WebSocketService';
 
 const ConsultationRequestsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -23,6 +24,26 @@ const ConsultationRequestsPage: React.FC = () => {
     
     // Fetch open consultation requests
     dispatch(fetchOpenConsultationRequests());
+    
+    // Set up WebSocket for real-time updates
+    const setupWebSocket = async () => {
+      try {
+        if (!webSocketService.isConsultationConnected()) {
+          await webSocketService.initializeConsultationConnection();
+        }
+        
+        // Listen for new consultation requests
+        webSocketService.onNewConsultationRequestCallback((data) => {
+          console.log('New consultation request received:', data);
+          // Refresh the list
+          dispatch(fetchOpenConsultationRequests());
+        });
+      } catch (error) {
+        console.error('WebSocket setup failed:', error);
+      }
+    };
+    
+    setupWebSocket();
   }, [dispatch, isAuthenticated, navigate, user]);
   
   const handleViewConsultation = (id: number) => {
