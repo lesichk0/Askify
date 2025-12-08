@@ -43,7 +43,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<ActionResult<int>> Create([FromBody] CreatePostDto postDto)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var postId = await _postService.CreatePostAsync(userId, postDto);
@@ -54,7 +54,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Update(int id, [FromBody] UpdatePostDto postDto)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var result = await _postService.UpdatePostAsync(id, userId, postDto);
@@ -66,7 +66,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var result = await _postService.DeletePostAsync(id, userId);
@@ -78,7 +78,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Like(int id)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var result = await _postService.LikePostAsync(id, userId);
@@ -90,7 +90,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Unlike(int id)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var result = await _postService.UnlikePostAsync(id, userId);
@@ -102,7 +102,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Save(int id)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var result = await _postService.SavePostAsync(id, userId);
@@ -114,7 +114,7 @@ namespace Askify.WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Unsave(int id)
         {
-            var userId = User.FindFirst("sub")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             var result = await _postService.UnsavePostAsync(id, userId);

@@ -1,8 +1,10 @@
 using Askify.BusinessLogicLayer.DTO;
 using Askify.BusinessLogicLayer.Interfaces;
 using Askify.DataAccessLayer.Interfaces;
+using Askify.WebAPI.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
@@ -15,19 +17,22 @@ namespace Askify.WebAPI.Controllers
     {
         private readonly IConsultationService _consultationService;
         private readonly ILogger<ConsultationsController> _logger;
+        private readonly IHubContext<ConsultationHub> _hubContext;
 
-        public ConsultationsController(IConsultationService consultationService, ILogger<ConsultationsController> logger)
+        public ConsultationsController(IConsultationService consultationService, ILogger<ConsultationsController> logger, IHubContext<ConsultationHub> hubContext)
         {
             _consultationService = consultationService;
             _logger = logger;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<ConsultationDto>>> GetAll()
         {
             try
             {
-                // Simple authentication check - any authenticated user can get all consultations
+                // Allow anonymous access - filter happens on frontend
                 var consultations = await _consultationService.GetAllAsync();
                 return Ok(consultations);
             }
@@ -216,6 +221,23 @@ namespace Askify.WebAPI.Controllers
                 
             var result = await _consultationService.AcceptConsultationAsync(id, expertId);
             if (!result) return BadRequest();
+            
+            // Get updated consultation to get expert name
+            var updatedConsultation = await _consultationService.GetByIdAsync(id);
+            if (updatedConsultation != null)
+            {
+                var groupName = $"consultation_{id}";
+                
+                // Broadcast to all clients in the consultation group
+                await _hubContext.Clients.Group(groupName).SendAsync("ConsultationAccepted", new
+                {
+                    consultationId = id,
+                    expertId,
+                    expertName = updatedConsultation.ExpertName,
+                    acceptedAt = DateTime.UtcNow
+                });
+            }
+            
             return Ok();
         }
 

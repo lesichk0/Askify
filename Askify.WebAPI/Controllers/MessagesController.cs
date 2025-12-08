@@ -1,7 +1,9 @@
 using Askify.BusinessLogicLayer.DTO;
 using Askify.BusinessLogicLayer.Interfaces;
+using Askify.WebAPI.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace Askify.WebAPI.Controllers
@@ -13,11 +15,13 @@ namespace Askify.WebAPI.Controllers
     {
         private readonly IMessageService _messageService;
         private readonly IConsultationService _consultationService;
+        private readonly IHubContext<ConsultationHub> _hubContext;
 
-        public MessagesController(IMessageService messageService, IConsultationService consultationService)
+        public MessagesController(IMessageService messageService, IConsultationService consultationService, IHubContext<ConsultationHub> hubContext)
         {
             _messageService = messageService;
             _consultationService = consultationService;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -81,6 +85,26 @@ namespace Askify.WebAPI.Controllers
             }
 
             var messageId = await _messageService.SendMessageAsync(userId, messageDto);
+            
+            // Get the message to broadcast
+            var message = await _messageService.GetByIdAsync(messageId);
+            if (message != null)
+            {
+                var groupName = $"consultation_{messageDto.ConsultationId}";
+                
+                // Broadcast to all clients in the consultation group
+                await _hubContext.Clients.Group(groupName).SendAsync("ReceiveConsultationMessage", new
+                {
+                    id = message.Id,
+                    consultationId = message.ConsultationId,
+                    senderId = message.SenderId,
+                    senderName = message.SenderName,
+                    text = message.Text,
+                    status = message.Status,
+                    sentAt = message.SentAt
+                });
+            }
+            
             return CreatedAtAction(nameof(GetById), new { id = messageId }, messageId);
         }
 

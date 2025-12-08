@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { getConsultationById } from '../features/consultations/consultationsSlice';
 import api from '../api/api';
+import { webSocketService } from '../services/WebSocketService';
 
 // Define additional interfaces to fix type errors
 interface ExpertOffer {
@@ -50,6 +51,20 @@ const ConsultationDetailPage: React.FC = () => {
   const [responseText, setResponseText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [responseError, setResponseError] = useState<string | null>(null);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to bottom when new messages arrive
+  const scrollToBottom = () => {
+    // Scroll within the messages container, not the whole page
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [localMessages]);
   
   // Cast currentConsultation to our extended type
   const typedConsultation = currentConsultation as ExtendedConsultation;
@@ -66,8 +81,45 @@ const ConsultationDetailPage: React.FC = () => {
   useEffect(() => {
     if (currentConsultation) {
       console.log('Loaded consultation data:', currentConsultation);
+      // Initialize local messages from consultation data
+      const typed = currentConsultation as ExtendedConsultation;
+      if (typed.messages) {
+        setLocalMessages(typed.messages);
+      }
     }
   }, [currentConsultation]);
+
+  // WebSocket setup for real-time messages
+  useEffect(() => {
+    if (!id || !isAuthenticated) return;
+
+    const setupWebSocket = async () => {
+      try {
+        // Initialize WebSocket connection
+        if (!webSocketService.isConsultationConnected()) {
+          await webSocketService.initializeConsultationConnection();
+        }
+
+        // Join the consultation room
+        await webSocketService.joinConsultation(parseInt(id));
+
+        // Set up message received callback
+        webSocketService.onMessageReceivedCallback((message) => {
+          console.log('New message received:', message);
+          setLocalMessages((prev) => [...prev, message]);
+        });
+      } catch (error) {
+        console.error('WebSocket setup failed:', error);
+      }
+    };
+
+    setupWebSocket();
+
+    return () => {
+      // Cleanup on unmount
+      webSocketService.leaveConsultation(parseInt(id));
+    };
+  }, [id, isAuthenticated]);
   
   // Helper functions for formatting - move up before conditional returns
   const formatDate = (dateString?: string) => {
@@ -150,11 +202,7 @@ const ConsultationDetailPage: React.FC = () => {
       
       // Clear the response text
       setResponseText('');
-      // Show success message
-      alert('Response sent successfully!');
-      
-      // Refresh consultation data
-      dispatch(getConsultationById(parseInt(id)));
+      // Message will appear via WebSocket real-time update
     } catch (err: any) {
       console.error('Error responding to consultation:', err);
       setResponseError('Failed to send response. Please try again.');
@@ -504,9 +552,9 @@ const ConsultationDetailPage: React.FC = () => {
           <h3 className="text-xl font-semibold mb-4">Conversation</h3>
           
           <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto">
-            {typedConsultation.messages && typedConsultation.messages.length > 0 ? (
+            {localMessages && localMessages.length > 0 ? (
               <div className="space-y-4">
-                {typedConsultation.messages.map((message: Message, index: number) => (
+                {localMessages.map((message: Message, index: number) => (
                   <div 
                     key={index}
                     className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
@@ -524,6 +572,7 @@ const ConsultationDetailPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             ) : (
               <p className="text-center text-gray-500 italic">No messages yet. Start the conversation!</p>

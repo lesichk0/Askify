@@ -10,6 +10,7 @@ using Askify.DataAccessLayer.Data;
 using Askify.DataAccessLayer.Entities;
 using Askify.DataAccessLayer.Interfaces;
 using Askify.DataAccessLayer.Seeding;
+using Askify.WebAPI.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -114,6 +115,15 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
+            // Handle SignalR tokens from query string
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            {
+                context.Token = accessToken;
+            }
+            
             Console.WriteLine($"JWT Token received: {context.Token}");
             return Task.CompletedTask;
         },
@@ -202,11 +212,15 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .WithOrigins("http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000")
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
+
+// Add SignalR for real-time communication
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -231,6 +245,10 @@ app.UseAuthorization();
 
 // Map controllers
 app.MapControllers();
+
+// Map SignalR Hubs
+app.MapHub<ConsultationHub>("/hubs/consultations");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 // Rebuild model cache and fix database schema
 app.Lifetime.ApplicationStarted.Register(async () =>
