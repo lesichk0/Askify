@@ -20,7 +20,8 @@ namespace Askify.WebAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetAll()
         {
-            var posts = await _postService.GetAllAsync();
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var posts = await _postService.GetAllWithUserContextAsync(userId);
             return Ok(posts);
         }
 
@@ -36,7 +37,8 @@ namespace Askify.WebAPI.Controllers
         [HttpGet("user/{userId}")]
         public async Task<ActionResult<IEnumerable<PostDto>>> GetByUserId(string userId)
         {
-            var posts = await _postService.GetByUserIdAsync(userId);
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var posts = await _postService.GetByUserIdWithUserContextAsync(userId, currentUserId);
             return Ok(posts);
         }
 

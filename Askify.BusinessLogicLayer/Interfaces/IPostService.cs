@@ -7,7 +7,9 @@ namespace Askify.BusinessLogicLayer.Interfaces
         Task<PostDto?> GetByIdAsync(int id);
         Task<PostDto?> GetByIdWithUserContextAsync(int id, string? userId);
         Task<IEnumerable<PostDto>> GetAllAsync();
+        Task<IEnumerable<PostDto>> GetAllWithUserContextAsync(string? userId);
         Task<IEnumerable<PostDto>> GetByUserIdAsync(string userId);
+        Task<IEnumerable<PostDto>> GetByUserIdWithUserContextAsync(string userId, string? currentUserId);
         Task<int> CreatePostAsync(string userId, CreatePostDto postDto);
         Task<bool> UpdatePostAsync(int id, string userId, UpdatePostDto postDto);
         Task<bool> DeletePostAsync(int id, string userId);

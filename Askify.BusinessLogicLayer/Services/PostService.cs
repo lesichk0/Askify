@@ -50,6 +50,57 @@ namespace Askify.BusinessLogicLayer.Services
             return _mapper.Map<IEnumerable<PostDto>>(posts);
         }
 
+        public async Task<IEnumerable<PostDto>> GetAllWithUserContextAsync(string? userId)
+        {
+            var posts = await _unitOfWork.Posts.GetPostsWithAuthorAsync();
+            var postDtos = _mapper.Map<List<PostDto>>(posts);
+            
+            foreach (var postDto in postDtos)
+            {
+                if (string.IsNullOrEmpty(postDto.AuthorName))
+                {
+                    var author = await _unitOfWork.Users.GetByIdAsync(postDto.AuthorId);
+                    if (author != null)
+                    {
+                        postDto.AuthorName = author.FullName;
+                    }
+                }
+                
+                // Always fetch like and comment counts from database
+                postDto.LikesCount = await GetLikesCountAsync(postDto.Id);
+                postDto.CommentsCount = await GetCommentsCountAsync(postDto.Id);
+                
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    postDto.IsLikedByCurrentUser = await IsLikedByUserAsync(postDto.Id, userId);
+                    postDto.IsSavedByCurrentUser = await IsSavedByUserAsync(postDto.Id, userId);
+                }
+            }
+            
+            return postDtos;
+        }
+
+        public async Task<IEnumerable<PostDto>> GetByUserIdWithUserContextAsync(string userId, string? currentUserId)
+        {
+            var posts = await _unitOfWork.Posts.GetByUserIdAsync(userId);
+            var postDtos = _mapper.Map<List<PostDto>>(posts);
+            
+            foreach (var postDto in postDtos)
+            {
+                // Always fetch like and comment counts from database
+                postDto.LikesCount = await GetLikesCountAsync(postDto.Id);
+                postDto.CommentsCount = await GetCommentsCountAsync(postDto.Id);
+                
+                if (!string.IsNullOrEmpty(currentUserId))
+                {
+                    postDto.IsLikedByCurrentUser = await IsLikedByUserAsync(postDto.Id, currentUserId);
+                    postDto.IsSavedByCurrentUser = await IsSavedByUserAsync(postDto.Id, currentUserId);
+                }
+            }
+            
+            return postDtos;
+        }
+
         public async Task<int> CreatePostAsync(string userId, CreatePostDto postDto)
         {
             var post = _mapper.Map<Post>(postDto);

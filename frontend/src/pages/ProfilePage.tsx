@@ -28,6 +28,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   coverImageUrl?: string;
+  isLikedByCurrentUser?: boolean;
 }
 
 const ProfilePage: React.FC = () => {
@@ -89,6 +90,32 @@ const ProfilePage: React.FC = () => {
     } catch (err) {
       console.error('Error deleting post:', err);
       setPostError('Failed to delete post. Please try again.');
+    }
+  };
+
+  const handleLike = async (postId: number, isLiked: boolean) => {
+    if (!isAuthenticated) return;
+
+    try {
+      if (isLiked) {
+        await api.delete(`/posts/${postId}/like`);
+      } else {
+        await api.post(`/posts/${postId}/like`);
+      }
+
+      // Update local state
+      setPosts(posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            isLikedByCurrentUser: !isLiked,
+            likesCount: isLiked ? post.likesCount - 1 : post.likesCount + 1
+          };
+        }
+        return post;
+      }));
+    } catch (err) {
+      console.error('Error toggling like:', err);
     }
   };
 
@@ -548,18 +575,34 @@ const ProfilePage: React.FC = () => {
                 <p className="text-gray-700 mb-4">{post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content}</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <span className="flex items-center text-gray-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button
+                      onClick={() => handleLike(post.id, post.isLikedByCurrentUser || false)}
+                      className={`flex items-center space-x-1 ${
+                        post.isLikedByCurrentUser
+                          ? 'text-red-500'
+                          : 'text-gray-500 hover:text-red-500'
+                      } transition`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill={post.isLikedByCurrentUser ? 'currentColor' : 'none'}
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
-                      {post.likesCount}
-                    </span>
-                    <span className="flex items-center text-gray-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <span>{post.likesCount}</span>
+                    </button>
+                    <button
+                      onClick={() => navigate(`/blog/${post.id}`)}
+                      className="flex items-center space-x-1 text-gray-500 hover:text-amber-600 transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                       </svg>
-                      {post.commentsCount}
-                    </span>
+                      <span>{post.commentsCount}</span>
+                    </button>
                   </div>
                   <button
                     onClick={() => navigate(`/blog/${post.id}`)}

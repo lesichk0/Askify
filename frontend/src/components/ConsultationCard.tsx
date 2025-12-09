@@ -11,6 +11,8 @@ interface ConsultationCardProps {
   date: string;
   category?: string; // ML-classified category
   tags?: string[]; // Add tags prop
+  onDelete?: (id: number) => void; // Optional delete callback
+  showDelete?: boolean; // Whether to show delete button
 }
 
 // Category color mapping
@@ -44,13 +46,22 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
   expertName,
   date,
   category,
-  tags = [] // Default to empty array
+  tags = [], // Default to empty array
+  onDelete,
+  showDelete = false
 }) => {
   const navigate = useNavigate();
   
   const handleClick = () => {
     console.log(`Navigating to consultation #${id}`);
     navigate(`/consultations/${id}`);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    if (onDelete) {
+      onDelete(id);
+    }
   };
   
   // Check if user is authenticated
@@ -124,22 +135,37 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
             )}
           </div>
           
-          {/* Replace the View Details link */}
-          {canViewDetails ? (
-            <Link
-              to={`/consultations/${id}`}
-              className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md text-sm transition border border-amber-600 shadow-sm"
-            >
-              View Details
-            </Link>
-          ) : (
-            <button
-              className="bg-gray-400 text-white px-4 py-2 rounded-md text-sm cursor-not-allowed"
-              disabled
-            >
-              Not Available
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Delete button */}
+            {showDelete && onDelete && (
+              <button
+                onClick={handleDelete}
+                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-md text-sm transition shadow-sm"
+                title="Delete consultation"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+            
+            {/* View Details button */}
+            {canViewDetails ? (
+              <Link
+                to={`/consultations/${id}`}
+                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md text-sm transition border border-amber-600 shadow-sm"
+              >
+                View Details
+              </Link>
+            ) : (
+              <button
+                className="bg-gray-400 text-white px-4 py-2 rounded-md text-sm cursor-not-allowed"
+                disabled
+              >
+                Not Available
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

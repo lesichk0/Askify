@@ -202,7 +202,8 @@ namespace Askify.WebAPI.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var isAdmin = User.IsInRole("Admin");
             
-            if (!isAdmin && string.IsNullOrEmpty(userId) || consultation.UserId != userId)
+            // Allow delete if user is admin OR if user owns the consultation
+            if (!isAdmin && (string.IsNullOrEmpty(userId) || consultation.UserId != userId))
                 return Forbid();
                 
             var result = await _consultationService.DeleteConsultationAsync(id);

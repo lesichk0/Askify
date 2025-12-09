@@ -111,6 +111,20 @@ export const fetchOpenConsultationRequests = createAsyncThunk(
   }
 );
 
+// Async thunk for deleting a consultation
+export const deleteConsultation = createAsyncThunk(
+  'consultations/delete',
+  async (consultationId: number, { rejectWithValue }) => {
+    try {
+      await api.delete(`/Consultations/${consultationId}`);
+      return consultationId;
+    } catch (error: any) {
+      console.error('Error deleting consultation:', error);
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete consultation');
+    }
+  }
+);
+
 const consultationsSlice = createSlice({
   name: 'consultations',
   initialState,
@@ -179,6 +193,20 @@ const consultationsSlice = createSlice({
         state.consultations = action.payload;
       })
       .addCase(fetchOpenConsultationRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // deleteConsultation
+      .addCase(deleteConsultation.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteConsultation.fulfilled, (state, action) => {
+        state.loading = false;
+        state.consultations = state.consultations.filter(c => c.id !== action.payload);
+      })
+      .addCase(deleteConsultation.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

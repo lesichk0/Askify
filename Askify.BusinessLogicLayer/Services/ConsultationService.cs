@@ -126,6 +126,20 @@ namespace Askify.BusinessLogicLayer.Services
             var consultation = await _unitOfWork.Consultations.GetByIdAsync(id);
             if (consultation == null) return false;
 
+            // Delete related messages first (to avoid foreign key constraint violation)
+            var messages = await _unitOfWork.Messages.GetMessagesForConsultationAsync(id);
+            if (messages.Any())
+            {
+                _unitOfWork.Messages.RemoveRange(messages);
+            }
+
+            // Delete related feedbacks
+            var feedbacks = await _unitOfWork.Feedbacks.FindAsync(f => f.ConsultationId == id);
+            if (feedbacks.Any())
+            {
+                _unitOfWork.Feedbacks.RemoveRange(feedbacks);
+            }
+
             _unitOfWork.Consultations.Remove(consultation);
             return await _unitOfWork.CompleteAsync();
         }        public async Task<bool> AcceptConsultationAsync(int id, string expertId)
