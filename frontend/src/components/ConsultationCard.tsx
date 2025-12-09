@@ -79,10 +79,10 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col"
       onClick={handleClick}
     >
-      <div className="p-6">
+      <div className="p-6 flex flex-col flex-1">
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-xl font-bold text-gray-800 truncate">{title}</h3>
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -123,16 +123,16 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
           </div>
         )}
         
-        <p className="text-gray-600 mb-4 line-clamp-2">{description}</p>
+        <p className="text-gray-600 mb-4 line-clamp-2 flex-1">{description}</p>
         
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
           <div className="flex items-center">
-            {expertName && (
-              <div className="mr-3">
-                <p className="text-sm font-medium text-stone-800">{expertName}</p>
-                <p className="text-xs text-stone-500">{date}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-sm font-medium text-stone-800">
+                {expertName || 'Expert not assigned'}
+              </p>
+              <p className="text-xs text-stone-500">{date}</p>
+            </div>
           </div>
           
           <div className="flex items-center gap-2">

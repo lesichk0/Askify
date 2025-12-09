@@ -151,10 +151,10 @@ const ExpertsPage: React.FC = () => {
           {filteredExperts.map((expert) => (
             <div 
               key={expert.id} 
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col"
               onClick={() => openExpertModal(expert)}
             >
-              <div className="p-6">
+              <div className="p-6 flex flex-col flex-1">
                 <div className="flex items-center mb-4">
                   <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-xl font-bold text-amber-700 mr-4">
                     {expert.fullName.charAt(0)}
@@ -175,24 +175,26 @@ const ExpertsPage: React.FC = () => {
                   </div>
                 </div>
                 
-                {expert.bio && (
-                  <p className="text-gray-600 mb-4 line-clamp-3">{expert.bio}</p>
-                )}
+                <div className="flex-1">
+                  {expert.bio && (
+                    <p className="text-gray-600 mb-4 line-clamp-3">{expert.bio}</p>
+                  )}
                 
-                {expert.expertise && expert.expertise.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {expert.expertise.map((skill, index) => (
-                      <span 
-                        key={index}
-                        className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                  {expert.expertise && expert.expertise.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {expert.expertise.map((skill, index) => (
+                        <span 
+                          key={index}
+                          className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 
-                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-100">
                   {expert.averageRating !== undefined && expert.averageRating !== null ? (
                     <div className="flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500 mr-1" viewBox="0 0 20 20" fill="currentColor">

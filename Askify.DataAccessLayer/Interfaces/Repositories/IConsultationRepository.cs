@@ -1,4 +1,5 @@
-﻿using Askify.DataAccessLayer.Entities;
+﻿using System.Linq.Expressions;
+using Askify.DataAccessLayer.Entities;
 
 namespace Askify.DataAccessLayer.Interfaces.Repositories
 {
@@ -6,6 +7,8 @@ namespace Askify.DataAccessLayer.Interfaces.Repositories
     {
         Task<IEnumerable<Consultation>> GetByExpertIdAsync(string expertId);
         Task<IEnumerable<Consultation>> GetByUserIdAsync(string userId);
+        Task<IEnumerable<Consultation>> GetAllWithExpertAsync();
+        Task<IEnumerable<Consultation>> FindWithExpertAsync(Expression<Func<Consultation, bool>> predicate);
     }
 
 }

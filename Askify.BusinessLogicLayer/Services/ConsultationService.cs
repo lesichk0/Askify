@@ -29,7 +29,7 @@ namespace Askify.BusinessLogicLayer.Services
 
         public async Task<IEnumerable<ConsultationDto>> GetAllAsync()
         {
-            var consultations = await _unitOfWork.Consultations.GetAllAsync();
+            var consultations = await _unitOfWork.Consultations.GetAllWithExpertAsync();
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
         }
 
@@ -40,13 +40,13 @@ namespace Askify.BusinessLogicLayer.Services
             if (includeAllRoles)
             {
                 // Get consultations where the user is either the owner or the expert
-                consultations = await _unitOfWork.Consultations.FindAsync(c => 
+                consultations = await _unitOfWork.Consultations.FindWithExpertAsync(c => 
                     c.UserId == userId || c.ExpertId == userId);
             }
             else
             {
                 // Get consultations where the user is only the owner
-                consultations = await _unitOfWork.Consultations.FindAsync(c => c.UserId == userId);
+                consultations = await _unitOfWork.Consultations.FindWithExpertAsync(c => c.UserId == userId);
             }
             
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
@@ -60,7 +60,7 @@ namespace Askify.BusinessLogicLayer.Services
 
         public async Task<IEnumerable<ConsultationDto>> GetByExpertIdAsync(string expertId)
         {
-            var consultations = await _unitOfWork.Consultations.FindAsync(c => c.ExpertId == expertId);
+            var consultations = await _unitOfWork.Consultations.FindWithExpertAsync(c => c.ExpertId == expertId);
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);
         }
 
@@ -237,7 +237,7 @@ namespace Askify.BusinessLogicLayer.Services
 
         public async Task<IEnumerable<ConsultationDto>> GetConsultationsByUserIdAsync(string userId)
         {
-            var consultations = await _unitOfWork.Consultations.FindAsync(
+            var consultations = await _unitOfWork.Consultations.FindWithExpertAsync(
                 c => c.UserId == userId || c.ExpertId == userId);
                 
             return _mapper.Map<IEnumerable<ConsultationDto>>(consultations);

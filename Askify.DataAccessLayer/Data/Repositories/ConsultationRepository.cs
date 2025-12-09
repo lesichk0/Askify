@@ -23,6 +23,23 @@ namespace Askify.DataAccessLayer.Data.Repositories
                 .FirstOrDefaultAsync(c => c.Id == consultationId);
         }
 
+        public async Task<IEnumerable<Consultation>> GetAllWithExpertAsync()
+        {
+            return await _context.Consultations
+                .Include(c => c.Expert)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.Sender)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Consultation>> FindWithExpertAsync(System.Linq.Expressions.Expression<Func<Consultation, bool>> predicate)
+        {
+            return await _context.Consultations
+                .Include(c => c.Expert)
+                .Where(predicate)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Consultation>> GetByExpertIdAsync(string expertId)
         {
             return await Task.FromResult(new List<Consultation>());

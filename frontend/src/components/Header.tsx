@@ -104,18 +104,11 @@ const Header: React.FC = () => {
               
               {/* Expert-specific navigation items */}
               {isAuthenticated && user?.role === 'Expert' && (
-                <>
-                  <li>
-                    <Link to="/consultation-requests" className="hover:text-yellow-200 transition">
-                      Open Requests
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/my-consultations" className="hover:text-yellow-200 transition">
-                      My Consultations
-                    </Link>
-                  </li>
-                </>
+                <li>
+                  <Link to="/my-consultations" className="hover:text-yellow-200 transition">
+                    My Consultations
+                  </Link>
+                </li>
               )}
               
               {/* User-specific navigation items */}
@@ -256,15 +249,6 @@ const Header: React.FC = () => {
                     </Link>
                   )}
                   
-                  {user?.role === 'Expert' && (
-                    <Link 
-                      to="/consultation-requests" 
-                      className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
-                    >
-                      Available Requests
-                    </Link>
-                  )}
-                  
                   <Link 
                     to="/notifications" 
                     className="block px-4 py-2 text-gray-800 hover:bg-amber-100"
@@ -300,11 +284,7 @@ const Header: React.FC = () => {
         <ul className="flex justify-around">
           <li><Link to="/" className="hover:text-yellow-200 transition">Home</Link></li>
           
-          {isAuthenticated && user?.role === 'Expert' ? (
-            <li><Link to="/consultation-requests" className="hover:text-yellow-200 transition">Requests</Link></li>
-          ) : (
-            <li><Link to="/consultations" className="hover:text-yellow-200 transition">Consult</Link></li>
-          )}
+          <li><Link to="/consultations" className="hover:text-yellow-200 transition">Consult</Link></li>
           
           <li><Link to="/experts" className="hover:text-yellow-200 transition">Experts</Link></li>
           <li><Link to="/notifications" className="hover:text-yellow-200 transition">Alerts</Link></li>

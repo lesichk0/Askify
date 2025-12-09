@@ -115,7 +115,7 @@ const HomePage: React.FC = () => {
                 key={consultation.id}
                 id={consultation.id}
                 title={consultation.title || 'Untitled Consultation'}
-                expertName={consultation.expertName || 'Unknown Expert'}
+                expertName={consultation.expertName}
                 description={consultation.description || 'No description available.'}
                 status={consultation.status as any}
                 date={formatDate(consultation.createdAt)}
